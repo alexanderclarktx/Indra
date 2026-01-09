@@ -7,19 +7,16 @@ const snapshot: Graph = {
     {
       id: "ingest",
       parentId: null,
-      type: "agent",
       prompt: "Classify incoming events and route them to the correct handler."
     },
     {
       id: "enrich",
       parentId: "ingest",
-      type: "code",
-      code: "enrichPayload(event)"
+      prompt: "Enrich the incoming event with additional context."
     },
     {
       id: "decide",
       parentId: "enrich",
-      type: "agent",
       prompt: "Select the next action and required tools."
     }
   ]

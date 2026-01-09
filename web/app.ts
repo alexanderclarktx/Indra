@@ -1,4 +1,4 @@
-import type { Graph, GraphNode } from "@indra/core"
+import type { Graph, Node } from "@indra/core"
 
 const svgNS = "http://www.w3.org/2000/svg"
 
@@ -72,9 +72,9 @@ type LayoutResult = {
   radius: number
 }
 
-function buildLayout(nodes: GraphNode[], width: number, height: number): LayoutResult {
+function buildLayout(nodes: Node[], width: number, height: number): LayoutResult {
   const nodeById = new Map(nodes.map((node) => [node.id, node]))
-  const childrenByParent = new Map<string, GraphNode[]>()
+  const childrenByParent = new Map<string, Node[]>()
 
   nodes.forEach((node) => {
     if (!node.parentId || !nodeById.has(node.parentId)) {
@@ -87,7 +87,7 @@ function buildLayout(nodes: GraphNode[], width: number, height: number): LayoutR
 
   const roots = nodes.filter((node) => !node.parentId || !nodeById.has(node.parentId))
   const depthMap = new Map<string, number>()
-  const queue: Array<{ node: GraphNode; depth: number }> = roots.map((node) => ({
+  const queue: Array<{ node: Node; depth: number }> = roots.map((node) => ({
     node,
     depth: 0,
   }))
@@ -110,7 +110,7 @@ function buildLayout(nodes: GraphNode[], width: number, height: number): LayoutR
     }
   })
 
-  const levels = new Map<number, GraphNode[]>()
+  const levels = new Map<number, Node[]>()
   nodes.forEach((node) => {
     const depth = depthMap.get(node.id) ?? 0
     const list = levels.get(depth) ?? []
@@ -128,7 +128,7 @@ function buildLayout(nodes: GraphNode[], width: number, height: number): LayoutR
 
   const positions = new Map<string, NodePosition>()
 
-  const placeLevel = (nodesAtLevel: GraphNode[], depth: number, x: number) => {
+  const placeLevel = (nodesAtLevel: Node[], depth: number, x: number) => {
     const count = nodesAtLevel.length
     if (count === 0) {
       return
@@ -235,7 +235,7 @@ function buildSvg(data: Graph, width: number, height: number): SvgLayout {
 
     const circle = document.createElementNS(svgNS, "circle")
     circle.setAttribute("r", radius.toFixed(2))
-    circle.classList.add("node-circle", node.type)
+    circle.classList.add("node-circle", "agent")
 
     const label = document.createElementNS(svgNS, "text")
     label.classList.add("node-label")
@@ -255,17 +255,17 @@ function buildSvg(data: Graph, width: number, height: number): SvgLayout {
   return { svg, positions, radius, width, height }
 }
 
-function setTooltipContent(tooltipEl: HTMLDivElement, node: GraphNode): void {
+function setTooltipContent(tooltipEl: HTMLDivElement, node: Node): void {
   tooltipEl.innerHTML = ""
   const rows: Array<{ label: string; value: string }> = [
     { label: "name", value: node.id },
   ]
 
-  if (node.type === "agent") {
-    rows.push({ label: "prompt", value: node.prompt })
-  } else {
-    rows.push({ label: "code", value: node.code })
-  }
+  // if (node.type === "agent") {
+  rows.push({ label: "prompt", value: node.prompt })
+  // } else {
+  //   rows.push({ label: "code", value: node.code })
+  // }
 
   rows.forEach((row) => {
     const rowEl = document.createElement("div")
@@ -315,7 +315,7 @@ function positionTooltip(position: NodePosition, layout: SvgLayout): void {
   })
 }
 
-function attachNodeInteractions(nodes: GraphNode[], layout: SvgLayout): void {
+function attachNodeInteractions(nodes: Node[], layout: SvgLayout): void {
   const tooltipEl = ensureTooltip()
   const nodesById = new Map(nodes.map((node) => [node.id, node]))
   const groups = layout.svg.querySelectorAll<SVGGElement>(".node")

@@ -183,7 +183,7 @@ function buildSvg(data, width, height) {
     group.dataset.nodeId = node.id;
     const circle = document.createElementNS(svgNS, "circle");
     circle.setAttribute("r", radius.toFixed(2));
-    circle.classList.add("node-circle", node.type);
+    circle.classList.add("node-circle", "agent");
     const label = document.createElementNS(svgNS, "text");
     label.classList.add("node-label");
     label.setAttribute("text-anchor", "middle");
@@ -203,11 +203,7 @@ function setTooltipContent(tooltipEl, node) {
   const rows = [
     { label: "name", value: node.id }
   ];
-  if (node.type === "agent") {
-    rows.push({ label: "prompt", value: node.prompt });
-  } else {
-    rows.push({ label: "code", value: node.code });
-  }
+  rows.push({ label: "prompt", value: node.prompt });
   rows.forEach((row) => {
     const rowEl = document.createElement("div");
     rowEl.className = "node-tooltip-row";
