@@ -1,136 +1,250 @@
+import type { GraphNode, GraphSnapshot } from "@indra/core"
 
+const svgNS = "http://www.w3.org/2000/svg"
 
-import { GraphSnapshot } from "@indra/core"
+console.log("Initializing app...")
 
 function getRequiredElement<T extends HTMLElement>(id: string): T {
-  const element = document.getElementById(id);
+  const element = document.getElementById(id)
   if (!element) {
-    throw new Error(`Missing element with id "${id}"`);
+    throw new Error(`Missing element with id "${id}"`)
   }
-  return element as T;
+  return element as T
 }
 
-const meta = getRequiredElement<HTMLDivElement>("graph-meta");
-const updated = getRequiredElement<HTMLSpanElement>("updated");
-const metrics = getRequiredElement<HTMLDivElement>("metrics");
-const nodes = getRequiredElement<HTMLDivElement>("nodes");
-const audit = getRequiredElement<HTMLDivElement>("audit");
-const refresh = getRequiredElement<HTMLButtonElement>("refresh");
+const graphContainer = getRequiredElement<HTMLDivElement>("graph")
+const status = getRequiredElement<HTMLDivElement>("status")
 
-let snapshot: GraphSnapshot | null = null;
-let activeNodeId: string | null = null;
+let snapshot: GraphSnapshot | null = null
+let resizeHandle = 0
 
 function formatTime(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const date = new Date(iso)
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
-function renderMeta(data: GraphSnapshot) {
-  meta.innerHTML = "";
-  const name = document.createElement("span");
-  name.textContent = `Name: ${data.graph.name}`;
-  const id = document.createElement("span");
-  id.textContent = `ID: ${data.graph.id}`;
-  const count = document.createElement("span");
-  count.textContent = `Nodes: ${data.graph.nodes.length}`;
-  meta.append(name, id, count);
+function setStatus(text: string): void {
+  status.textContent = text
 }
 
-function renderMetrics(data: GraphSnapshot) {
-  metrics.innerHTML = "";
-  data.metrics.forEach((metric) => {
-    const item = document.createElement("div");
-    item.className = "metric";
-    const label = document.createElement("span");
-    label.textContent = metric.label;
-    const value = document.createElement("strong");
-    value.textContent = String(metric.value);
-    item.append(label, value);
-    metrics.append(item);
-  });
+type NodePosition = {
+  x: number
+  y: number
+  depth: number
 }
 
-function renderNodes(data: GraphSnapshot) {
-  nodes.innerHTML = "";
-  data.graph.nodes.forEach((node) => {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "node";
-    if (node.id === activeNodeId) {
-      card.classList.add("active");
+type LayoutResult = {
+  positions: Map<string, NodePosition>
+  radius: number
+}
+
+function buildLayout(nodes: GraphNode[], width: number, height: number): LayoutResult {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]))
+  const childrenByParent = new Map<string, GraphNode[]>()
+
+  nodes.forEach((node) => {
+    if (!node.parentId || !nodeById.has(node.parentId)) {
+      return
     }
+    const list = childrenByParent.get(node.parentId) ?? []
+    list.push(node)
+    childrenByParent.set(node.parentId, list)
+  })
 
-    const type = document.createElement("span");
-    type.textContent = node.type === "agent" ? "Agent node" : "Code node";
-    const title = document.createElement("strong");
-    title.textContent = node.id;
-    const detail = document.createElement("p");
-    detail.textContent =
-      node.type === "agent" ? node.prompt : `Runs: ${node.code}`;
+  const roots = nodes.filter((node) => !node.parentId || !nodeById.has(node.parentId))
+  const depthMap = new Map<string, number>()
+  const queue: Array<{ node: GraphNode; depth: number }> = roots.map((node) => ({
+    node,
+    depth: 0,
+  }))
 
-    card.append(type, title, detail);
-    card.addEventListener("click", () => {
-      activeNodeId = node.id;
-      renderNodes(data);
-      renderAudit(data);
-    });
-
-    nodes.append(card);
-  });
-}
-
-function renderAudit(data: GraphSnapshot) {
-  audit.innerHTML = "";
-  const entries = activeNodeId
-    ? data.audit.filter((item) => item.nodeId === activeNodeId)
-    : data.audit;
-
-  if (entries.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "audit-item";
-    empty.textContent = "No audit events for this node yet.";
-    audit.append(empty);
-    return;
+  while (queue.length > 0) {
+    const current = queue.shift()
+    if (!current || depthMap.has(current.node.id)) {
+      continue
+    }
+    depthMap.set(current.node.id, current.depth)
+    const children = childrenByParent.get(current.node.id) ?? []
+    children.forEach((child) => {
+      queue.push({ node: child, depth: current.depth + 1 })
+    })
   }
 
-  entries.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "audit-item";
-    const message = document.createElement("strong");
-    message.textContent = item.message;
-    const metaRow = document.createElement("small");
-    metaRow.textContent = `${item.nodeId} • ${formatTime(item.timestamp)}`;
-    row.append(message, metaRow);
-    audit.append(row);
-  });
+  nodes.forEach((node) => {
+    if (!depthMap.has(node.id)) {
+      depthMap.set(node.id, 0)
+    }
+  })
+
+  const levels = new Map<number, GraphNode[]>()
+  nodes.forEach((node) => {
+    const depth = depthMap.get(node.id) ?? 0
+    const list = levels.get(depth) ?? []
+    list.push(node)
+    levels.set(depth, list)
+  })
+
+  const depthValues = Array.from(levels.keys())
+  const maxDepth = depthValues.length > 0 ? Math.max(...depthValues) : 0
+  const radius = Math.max(22, Math.min(44, Math.min(width, height) * 0.05))
+  const paddingX = Math.max(radius * 2, width * 0.08)
+  const paddingY = Math.max(radius * 2.4, height * 0.12)
+  const availableWidth = Math.max(0, width - paddingX * 2)
+  const availableHeight = Math.max(0, height - paddingY * 2)
+
+  const positions = new Map<string, NodePosition>()
+
+  const placeLevel = (nodesAtLevel: GraphNode[], depth: number, y: number) => {
+    const count = nodesAtLevel.length
+    if (count === 0) {
+      return
+    }
+    if (count === 1) {
+      positions.set(nodesAtLevel[0].id, { x: width / 2, y, depth })
+      return
+    }
+    const gap = count > 1 ? availableWidth / (count - 1) : availableWidth
+    nodesAtLevel.forEach((node, index) => {
+      const x = paddingX + index * gap
+      positions.set(node.id, { x, y, depth })
+    })
+  }
+
+  if (maxDepth === 0) {
+    const nodesAtLevel = levels.get(0) ?? []
+    placeLevel(nodesAtLevel, 0, height / 2)
+  } else {
+    const verticalGap = availableHeight / maxDepth
+    levels.forEach((nodesAtLevel, depth) => {
+      const y = paddingY + depth * verticalGap
+      placeLevel(nodesAtLevel, depth, y)
+    })
+  }
+
+  return { positions, radius }
 }
 
-function render(data: GraphSnapshot) {
-  snapshot = data;
-  renderMeta(data);
-  renderMetrics(data);
-  renderNodes(data);
-  renderAudit(data);
-  updated.textContent = `Updated ${formatTime(data.updatedAt)}`;
+function truncateLabel(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text
+  }
+  return `${text.slice(0, Math.max(1, maxLength - 3))}...`
+}
+
+function buildSvg(data: GraphSnapshot, width: number, height: number): SVGSVGElement {
+  const svg = document.createElementNS(svgNS, "svg")
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`)
+  svg.setAttribute("width", `${width}`)
+  svg.setAttribute("height", `${height}`)
+
+  const { positions, radius } = buildLayout(data.graph.nodes, width, height)
+  const edges = document.createElementNS(svgNS, "g")
+  const nodes = document.createElementNS(svgNS, "g")
+
+  const edgesList = data.graph.nodes
+    .map((node) => {
+      if (!node.parentId) {
+        return null
+      }
+      const parentPos = positions.get(node.parentId)
+      const nodePos = positions.get(node.id)
+      if (!parentPos || !nodePos) {
+        return null
+      }
+      return { node, parentPos, nodePos }
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+
+  edgesList.forEach((edge, index) => {
+    const line = document.createElementNS(svgNS, "line")
+    line.setAttribute("x1", edge.parentPos.x.toFixed(2))
+    line.setAttribute("y1", edge.parentPos.y.toFixed(2))
+    line.setAttribute("x2", edge.nodePos.x.toFixed(2))
+    line.setAttribute("y2", edge.nodePos.y.toFixed(2))
+    line.classList.add("edge")
+    line.style.animationDelay = `${index * 0.08}s`
+    edges.appendChild(line)
+  })
+
+  data.graph.nodes.forEach((node, index) => {
+    const position = positions.get(node.id)
+    if (!position) {
+      return
+    }
+    const group = document.createElementNS(svgNS, "g")
+    group.classList.add("node")
+    group.style.animationDelay = `${index * 0.06}s`
+    group.setAttribute("transform", `translate(${position.x}, ${position.y})`)
+
+    const circle = document.createElementNS(svgNS, "circle")
+    circle.setAttribute("r", radius.toFixed(2))
+    circle.classList.add("node-circle", node.type)
+
+    const label = document.createElementNS(svgNS, "text")
+    label.classList.add("node-label")
+    label.setAttribute("text-anchor", "middle")
+    label.setAttribute("dominant-baseline", "middle")
+    label.textContent = truncateLabel(node.id, 12)
+
+    const title = document.createElementNS(svgNS, "title")
+    title.textContent = node.id
+
+    group.append(title, circle, label)
+    nodes.appendChild(group)
+  })
+
+  svg.append(edges, nodes)
+  return svg
+}
+
+function renderSnapshot(data: GraphSnapshot): void {
+  snapshot = data
+  graphContainer.innerHTML = ""
+
+  if (data.graph.nodes.length === 0) {
+    const placeholder = document.createElement("div")
+    placeholder.className = "placeholder"
+    placeholder.textContent = "No nodes in topology."
+    graphContainer.appendChild(placeholder)
+    setStatus("No nodes in topology")
+    return
+  }
+
+  const rect = graphContainer.getBoundingClientRect()
+  const width = Math.max(320, Math.floor(rect.width))
+  const height = Math.max(320, Math.floor(rect.height))
+  const svg = buildSvg(data, width, height)
+  graphContainer.appendChild(svg)
+  setStatus(`Updated ${formatTime(data.updatedAt)}`)
 }
 
 async function loadSnapshot(): Promise<void> {
-  const res = await fetch("/api/graph");
+  console.log("Loading graph snapshot...")
+  const res = await fetch("/api/graph")
   if (!res.ok) {
-    throw new Error("Failed to load graph snapshot");
+    throw new Error("Failed to load graph snapshot")
   }
-  const data = (await res.json()) as GraphSnapshot;
-  render(data);
+  console.log("Loaded graph snapshot")
+  const data = (await res.json()) as GraphSnapshot
+  renderSnapshot(data)
 }
 
-refresh.addEventListener("click", () => {
-  activeNodeId = null;
-  loadSnapshot().catch((err) => {
-    console.error(err);
-  });
-});
+const resizeObserver = new ResizeObserver(() => {
+  if (!snapshot) {
+    return
+  }
+  cancelAnimationFrame(resizeHandle)
+  resizeHandle = requestAnimationFrame(() => {
+    if (snapshot) {
+      renderSnapshot(snapshot)
+    }
+  })
+})
 
+resizeObserver.observe(graphContainer)
+
+console.log("Starting app...")
 loadSnapshot().catch((err) => {
-  console.error(err);
-  updated.textContent = "Offline";
-});
+  console.error(err)
+  setStatus("Offline")
+})

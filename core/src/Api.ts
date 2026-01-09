@@ -65,10 +65,11 @@ Bun.serve({
   async fetch(req) {
     const url = new URL(req.url)
 
-    console.log(`Received request for ${url.pathname}`)
+    // console.log(`Received request for ${url.pathname}`)
 
     if (url.pathname === "/api/graph") {
       snapshot.updatedAt = new Date().toISOString()
+      console.log("Serving graph snapshot")
       return Response.json(snapshot)
     }
 
