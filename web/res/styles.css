@@ -19,7 +19,7 @@ body {
   min-height: 100vh;
   font-family: "Space Grotesk", sans-serif;
   color: var(--label);
-  background: radial-gradient(1000px 520px at 50% -15%, #151515 0%, var(--bg-mid) 50%, var(--bg-deep) 100%);
+  background:rgba(0, 1, 11, 0.5);
   overflow: hidden;
 }
 
@@ -48,8 +48,7 @@ body::before {
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(5, 5, 5, 0.7);
+  /* background: rgba(5, 5, 5, 0.1); */
   backdrop-filter: blur(10px);
   text-transform: uppercase;
   letter-spacing: 0.14em;
