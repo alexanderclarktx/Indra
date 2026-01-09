@@ -1,4 +1,4 @@
-import type { Graph } from "@indra/core"
+import { Graph } from "@indra/core"
 
 const snapshot: Graph = {
   id: "demo",
@@ -22,14 +22,11 @@ const snapshot: Graph = {
   ]
 }
 
-function isSafePath(pathname: string) {
-  return !pathname.includes("..") && !pathname.includes("\\")
-}
-
 const server = Bun.serve({
   port: 5001,
   async fetch(req) {
     const url = new URL(req.url)
+
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
