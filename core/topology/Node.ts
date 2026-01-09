@@ -21,7 +21,7 @@ export type NodeWorker = Node & {
 
 export const NodeWorker = (node: Node): NodeWorker => {
 
-  const claude = ClaudeFetcher(true)
+  const claude = ClaudeFetcher(false)
 
   const worker = {
     ...node,

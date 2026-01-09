@@ -22,11 +22,16 @@ export const demo: Graph = {
       id: "suggestion",
       parentId: "ingest",
       prompt: "suggest three related topics that might interest the reader. respond only with a comma separated list of topics."
+    },
+    {
+      id: "log2",
+      parentId: "tag",
+      prompt: "log the extracted tags to the console."
+    },
+    {
+      id: "log",
+      parentId: "suggestion",
+      prompt: "log the extracted tags to the console."
     }
-    // {
-    //   id: "log",
-    //   parentId: "tag",
-    //   prompt: "log the extracted tags to the console."
-    // }
   ]
 }

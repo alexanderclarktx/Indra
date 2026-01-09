@@ -1,6 +1,10 @@
 import { IndraVersion, Graph, Node } from "@indra/core"
 
 const svgNS = "http://www.w3.org/2000/svg"
+const labelMaxLength = 12
+const labelPadding = 16
+const minRadius = 22
+const maxRadius = 44
 
 function getRequiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id)
@@ -76,7 +80,12 @@ type LayoutResult = {
   radius: number
 }
 
-function buildLayout(nodes: Node[], width: number, height: number): LayoutResult {
+function buildLayout(
+  nodes: Node[],
+  width: number,
+  height: number,
+  radius: number
+): LayoutResult {
   const nodeById = new Map(nodes.map((node) => [node.id, node]))
   const childrenByParent = new Map<string, Node[]>()
 
@@ -124,7 +133,6 @@ function buildLayout(nodes: Node[], width: number, height: number): LayoutResult
 
   const depthValues = Array.from(levels.keys())
   const maxDepth = depthValues.length > 0 ? Math.max(...depthValues) : 0
-  const radius = Math.max(22, Math.min(44, Math.min(width, height) * 0.05))
   const paddingX = Math.max(radius * 2.4, width * 0.12)
   const paddingY = Math.max(radius * 2, height * 0.08)
   const availableWidth = Math.max(0, width - paddingX * 2)
@@ -169,6 +177,59 @@ function truncateLabel(text: string, maxLength: number): string {
   return `${text.slice(0, Math.max(1, maxLength - 3))}...`
 }
 
+function getNodeLabel(id: string): string {
+  return truncateLabel(id, labelMaxLength)
+}
+
+function measureMaxLabelWidth(labels: string[]): number {
+  if (labels.length === 0 || !document.body) {
+    return 0
+  }
+  const svg = document.createElementNS(svgNS, "svg")
+  svg.setAttribute("width", "0")
+  svg.setAttribute("height", "0")
+  svg.setAttribute("aria-hidden", "true")
+  svg.style.position = "absolute"
+  svg.style.visibility = "hidden"
+  svg.style.pointerEvents = "none"
+  svg.style.left = "-9999px"
+  svg.style.top = "-9999px"
+
+  const text = document.createElementNS(svgNS, "text")
+  text.classList.add("node-label")
+  svg.appendChild(text)
+  document.body.appendChild(svg)
+
+  let maxWidth = 0
+  try {
+    labels.forEach((label) => {
+      text.textContent = label
+      maxWidth = Math.max(maxWidth, text.getComputedTextLength())
+    })
+  } finally {
+    document.body.removeChild(svg)
+  }
+  return maxWidth
+}
+
+function getRequiredRadius(nodes: Node[]): number {
+  const labels = nodes.map((node) => getNodeLabel(node.id))
+  const maxWidth = measureMaxLabelWidth(labels)
+  if (maxWidth <= 0) {
+    return 0
+  }
+  return maxWidth / 2 + labelPadding
+}
+
+function getLayoutRadius(nodes: Node[], width: number, height: number): number {
+  const baseRadius = Math.max(
+    minRadius,
+    Math.min(maxRadius, Math.min(width, height) * 0.05)
+  )
+  const labelRadius = getRequiredRadius(nodes)
+  return Math.max(baseRadius, labelRadius)
+}
+
 type SvgLayout = LayoutResult & {
   svg: SVGSVGElement
   width: number
@@ -182,7 +243,8 @@ function buildSvg(data: Graph, width: number, height: number): SvgLayout {
   svg.setAttribute("width", `${width}`)
   svg.setAttribute("height", `${height}`)
 
-  const { positions, radius } = buildLayout(data.nodes, width, height)
+  const radius = getLayoutRadius(data.nodes, width, height)
+  const { positions } = buildLayout(data.nodes, width, height, radius)
   const edges = document.createElementNS(svgNS, "g")
   const nodes = document.createElementNS(svgNS, "g")
   const nodeCounts = new Map<string, SVGTextElement>()
@@ -247,7 +309,7 @@ function buildSvg(data: Graph, width: number, height: number): SvgLayout {
     label.classList.add("node-label")
     label.setAttribute("text-anchor", "middle")
     label.setAttribute("dominant-baseline", "middle")
-    label.textContent = truncateLabel(node.id, 12)
+    label.textContent = getNodeLabel(node.id)
 
     const count = document.createElementNS(svgNS, "text")
     count.classList.add("node-count")
@@ -447,6 +509,17 @@ const resizeObserver = new ResizeObserver(() => {
 })
 
 resizeObserver.observe(graphContainer)
+
+if (document.fonts) {
+  document.fonts
+    .ready
+    .then(() => {
+      if (snapshot) {
+        renderSnapshot(snapshot)
+      }
+    })
+    .catch(() => {})
+}
 
 loadSnapshot().catch((err) => {
   console.error(err)
