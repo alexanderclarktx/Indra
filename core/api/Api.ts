@@ -1,8 +1,8 @@
 import type { Graph } from "@indra/core"
 
 const snapshot: Graph = {
-  id: "graph-001",
-  name: "Onboarding Demo",
+  id: "demo",
+  name: "demo",
   nodes: [
     {
       id: "ingest",
