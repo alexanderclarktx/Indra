@@ -26,7 +26,8 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
   setInterval(() => {
     for (const worker of Object.values(workers)) {
       if (!worker.parentId) {
-        if (timer++ % 100 !== 0) continue
+        if (timer++ > 0) continue
+        // if (timer++ % 100 !== 0) continue
         // console.log(`root: ${worker.id}`)
         const result = worker.process(null)
         result.then((res => {
