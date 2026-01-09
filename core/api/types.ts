@@ -23,22 +23,3 @@ export type Graph = {
   name: string
   nodes: GraphNode[]
 }
-
-export type AuditEvent = {
-  id: string
-  nodeId: string
-  message: string
-  timestamp: string
-}
-
-export type MetricPoint = {
-  label: string
-  value: number
-}
-
-export type GraphSnapshot = {
-  graph: Graph
-  audit: AuditEvent[]
-  metrics: MetricPoint[]
-  updatedAt: string
-}

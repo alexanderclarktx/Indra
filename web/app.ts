@@ -1,4 +1,4 @@
-import type { GraphNode, GraphSnapshot } from "@indra/core"
+import type { Graph, GraphNode } from "@indra/core"
 
 const svgNS = "http://www.w3.org/2000/svg"
 
@@ -15,7 +15,7 @@ function getRequiredElement<T extends HTMLElement>(id: string): T {
 const graphContainer = getRequiredElement<HTMLDivElement>("graph")
 const status = getRequiredElement<HTMLDivElement>("status")
 
-let snapshot: GraphSnapshot | null = null
+let snapshot: Graph | null = null
 let resizeHandle = 0
 let tooltip: HTMLDivElement | null = null
 let activeNodeId: string | null = null
@@ -171,17 +171,17 @@ type SvgLayout = LayoutResult & {
   height: number
 }
 
-function buildSvg(data: GraphSnapshot, width: number, height: number): SvgLayout {
+function buildSvg(data: Graph, width: number, height: number): SvgLayout {
   const svg = document.createElementNS(svgNS, "svg")
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`)
   svg.setAttribute("width", `${width}`)
   svg.setAttribute("height", `${height}`)
 
-  const { positions, radius } = buildLayout(data.graph.nodes, width, height)
+  const { positions, radius } = buildLayout(data.nodes, width, height)
   const edges = document.createElementNS(svgNS, "g")
   const nodes = document.createElementNS(svgNS, "g")
 
-  const edgesList = data.graph.nodes
+  const edgesList = data.nodes
     .map((node) => {
       if (!node.parentId) {
         return null
@@ -220,7 +220,7 @@ function buildSvg(data: GraphSnapshot, width: number, height: number): SvgLayout
     edges.appendChild(line)
   })
 
-  data.graph.nodes.forEach((node, index) => {
+  data.nodes.forEach((node, index) => {
     const position = positions.get(node.id)
     if (!position) {
       return
@@ -344,13 +344,13 @@ function attachNodeInteractions(nodes: GraphNode[], layout: SvgLayout): void {
   })
 }
 
-function renderSnapshot(data: GraphSnapshot): void {
+function renderSnapshot(data: Graph): void {
   snapshot = data
   graphContainer.innerHTML = ""
   hideTooltip()
   ensureClickAwayHandler()
 
-  if (data.graph.nodes.length === 0) {
+  if (data.nodes.length === 0) {
     const placeholder = document.createElement("div")
     placeholder.className = "placeholder"
     placeholder.textContent = "No nodes in topology."
@@ -364,8 +364,8 @@ function renderSnapshot(data: GraphSnapshot): void {
   const height = Math.max(320, Math.floor(rect.height))
   const layout = buildSvg(data, width, height)
   graphContainer.appendChild(layout.svg)
-  attachNodeInteractions(data.graph.nodes, layout)
-  setStatus(`Updated ${formatTime(data.updatedAt)}`)
+  attachNodeInteractions(data.nodes, layout)
+  // setStatus(`Updated ${formatTime(data.updatedAt)}`)
 }
 
 async function loadSnapshot(): Promise<void> {
@@ -375,7 +375,7 @@ async function loadSnapshot(): Promise<void> {
     throw new Error("Failed to load graph snapshot")
   }
   console.log("Loaded graph snapshot")
-  const data = (await res.json()) as GraphSnapshot
+  const data = (await res.json()) as Graph
   renderSnapshot(data)
 }
 

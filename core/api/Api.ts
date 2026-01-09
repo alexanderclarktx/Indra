@@ -1,59 +1,28 @@
-import type { GraphSnapshot } from "@indra/core"
+import type { Graph } from "@indra/core"
 
-const snapshot: GraphSnapshot = {
-  graph: {
-    id: "graph-001",
-    name: "Onboarding Demo",
-    nodes: [
-      {
-        id: "ingest",
-        parentId: null,
-        type: "agent",
-        prompt: "Classify incoming events and route them to the correct handler."
-      },
-      {
-        id: "enrich",
-        parentId: "ingest",
-        type: "code",
-        code: "enrichPayload(event)"
-      },
-      {
-        id: "decide",
-        parentId: "enrich",
-        type: "agent",
-        prompt: "Select the next action and required tools."
-      }
-    ]
-  },
-  audit: [
+const snapshot: Graph = {
+  id: "graph-001",
+  name: "Onboarding Demo",
+  nodes: [
     {
-      id: "audit-001",
-      nodeId: "ingest",
-      message: "Received new webhook payload.",
-      timestamp: new Date().toISOString()
+      id: "ingest",
+      parentId: null,
+      type: "agent",
+      prompt: "Classify incoming events and route them to the correct handler."
     },
     {
-      id: "audit-002",
-      nodeId: "enrich",
-      message: "Normalized fields and attached metadata.",
-      timestamp: new Date().toISOString()
+      id: "enrich",
+      parentId: "ingest",
+      type: "code",
+      code: "enrichPayload(event)"
+    },
+    {
+      id: "decide",
+      parentId: "enrich",
+      type: "agent",
+      prompt: "Select the next action and required tools."
     }
-  ],
-  metrics: [
-    {
-      label: "Active nodes",
-      value: 3
-    },
-    {
-      label: "Messages in flight",
-      value: 2
-    },
-    {
-      label: "Avg latency (ms)",
-      value: 128
-    }
-  ],
-  updatedAt: new Date().toISOString()
+  ]
 }
 
 function isSafePath(pathname: string) {
@@ -75,7 +44,6 @@ const server = Bun.serve({
     }
 
     if (url.pathname === "/api/graph") {
-      snapshot.updatedAt = new Date().toISOString()
       console.log("Serving graph snapshot")
       return Response.json(snapshot, { headers: corsHeaders })
     }

@@ -15,10 +15,6 @@ var resizeHandle = 0;
 var tooltip = null;
 var activeNodeId = null;
 var clickAwayBound = false;
-function formatTime(iso) {
-  const date = new Date(iso);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
 function setStatus(text) {
   status.textContent = text;
 }
@@ -136,10 +132,10 @@ function buildSvg(data, width, height) {
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   svg.setAttribute("width", `${width}`);
   svg.setAttribute("height", `${height}`);
-  const { positions, radius } = buildLayout(data.graph.nodes, width, height);
+  const { positions, radius } = buildLayout(data.nodes, width, height);
   const edges = document.createElementNS(svgNS, "g");
   const nodes = document.createElementNS(svgNS, "g");
-  const edgesList = data.graph.nodes.map((node) => {
+  const edgesList = data.nodes.map((node) => {
     if (!node.parentId) {
       return null;
     }
@@ -174,7 +170,7 @@ function buildSvg(data, width, height) {
     line.style.animationDelay = `${index * 0.08}s`;
     edges.appendChild(line);
   });
-  data.graph.nodes.forEach((node, index) => {
+  data.nodes.forEach((node, index) => {
     const position = positions.get(node.id);
     if (!position) {
       return;
@@ -284,7 +280,7 @@ function renderSnapshot(data) {
   graphContainer.innerHTML = "";
   hideTooltip();
   ensureClickAwayHandler();
-  if (data.graph.nodes.length === 0) {
+  if (data.nodes.length === 0) {
     const placeholder = document.createElement("div");
     placeholder.className = "placeholder";
     placeholder.textContent = "No nodes in topology.";
@@ -297,8 +293,7 @@ function renderSnapshot(data) {
   const height = Math.max(320, Math.floor(rect.height));
   const layout = buildSvg(data, width, height);
   graphContainer.appendChild(layout.svg);
-  attachNodeInteractions(data.graph.nodes, layout);
-  setStatus(`Updated ${formatTime(data.updatedAt)}`);
+  attachNodeInteractions(data.nodes, layout);
 }
 async function loadSnapshot() {
   console.log("Loading graph snapshot...");
