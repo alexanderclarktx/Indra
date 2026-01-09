@@ -1,35 +1,13 @@
-import type { Graph } from "@indra/core"
+import { GraphWorker } from "@indra/core"
+import { demo } from "./demo"
 
-const snapshot: Graph = {
-  id: "demo",
-  name: "demo",
-  nodes: [
-    {
-      id: "ingest",
-      parentId: null,
-      prompt: "Classify incoming events and route them to the correct handler."
-    },
-    {
-      id: "enrich",
-      parentId: "ingest",
-      prompt: "Enrich the incoming event with additional context."
-    },
-    {
-      id: "decide",
-      parentId: "enrich",
-      prompt: "Select the next action and required tools."
-    }
-  ]
-}
-
-function isSafePath(pathname: string) {
-  return !pathname.includes("..") && !pathname.includes("\\")
-}
+const graphWorker = GraphWorker(demo)
 
 const server = Bun.serve({
   port: 5001,
   async fetch(req) {
     const url = new URL(req.url)
+
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -41,8 +19,11 @@ const server = Bun.serve({
     }
 
     if (url.pathname === "/api/graph") {
-      console.log("Serving graph snapshot")
-      return Response.json(snapshot, { headers: corsHeaders })
+      const nodes = graphWorker.graph.nodes.map((node) => ({
+        ...node,
+        processed: graphWorker.workers[node.id]?.processed ?? 0
+      }))
+      return Response.json({ ...graphWorker.graph, nodes }, { headers: corsHeaders })
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders })
