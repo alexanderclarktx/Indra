@@ -2,6 +2,8 @@
   "name": "@indra/web",
   "main": "./main.ts",
   "scripts": {
-
+    "dev": "bun dev-compile & bun dev-serve",
+    "dev-compile": "bun build --watch app.ts --outdir res",
+    "dev-serve": "bun x serve -L -p 5000 res"
   }
 }

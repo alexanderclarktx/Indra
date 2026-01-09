@@ -1,3 +1,2 @@
-export * from "./src/Api"
-export * from "./src/types"
+export * from "./api/types"
 export * from "./util/AppUtil"
