@@ -87,37 +87,37 @@ function buildLayout(nodes: GraphNode[], width: number, height: number): LayoutR
   const depthValues = Array.from(levels.keys())
   const maxDepth = depthValues.length > 0 ? Math.max(...depthValues) : 0
   const radius = Math.max(22, Math.min(44, Math.min(width, height) * 0.05))
-  const paddingX = Math.max(radius * 2, width * 0.08)
-  const paddingY = Math.max(radius * 2.4, height * 0.12)
+  const paddingX = Math.max(radius * 2.4, width * 0.12)
+  const paddingY = Math.max(radius * 2, height * 0.08)
   const availableWidth = Math.max(0, width - paddingX * 2)
   const availableHeight = Math.max(0, height - paddingY * 2)
 
   const positions = new Map<string, NodePosition>()
 
-  const placeLevel = (nodesAtLevel: GraphNode[], depth: number, y: number) => {
+  const placeLevel = (nodesAtLevel: GraphNode[], depth: number, x: number) => {
     const count = nodesAtLevel.length
     if (count === 0) {
       return
     }
     if (count === 1) {
-      positions.set(nodesAtLevel[0].id, { x: width / 2, y, depth })
+      positions.set(nodesAtLevel[0].id, { x, y: height / 2, depth })
       return
     }
-    const gap = count > 1 ? availableWidth / (count - 1) : availableWidth
+    const gap = count > 1 ? availableHeight / (count - 1) : availableHeight
     nodesAtLevel.forEach((node, index) => {
-      const x = paddingX + index * gap
+      const y = paddingY + index * gap
       positions.set(node.id, { x, y, depth })
     })
   }
 
   if (maxDepth === 0) {
     const nodesAtLevel = levels.get(0) ?? []
-    placeLevel(nodesAtLevel, 0, height / 2)
+    placeLevel(nodesAtLevel, 0, width / 2)
   } else {
-    const verticalGap = availableHeight / maxDepth
+    const horizontalGap = availableWidth / maxDepth
     levels.forEach((nodesAtLevel, depth) => {
-      const y = paddingY + depth * verticalGap
-      placeLevel(nodesAtLevel, depth, y)
+      const x = paddingX + depth * horizontalGap
+      placeLevel(nodesAtLevel, depth, x)
     })
   }
 
@@ -151,16 +151,30 @@ function buildSvg(data: GraphSnapshot, width: number, height: number): SVGSVGEle
       if (!parentPos || !nodePos) {
         return null
       }
-      return { node, parentPos, nodePos }
+      const dx = nodePos.x - parentPos.x
+      const dy = nodePos.y - parentPos.y
+      const distance = Math.hypot(dx, dy)
+      if (distance <= radius * 2) {
+        return null
+      }
+      const ux = dx / distance
+      const uy = dy / distance
+      return {
+        node,
+        x1: parentPos.x + ux * radius,
+        y1: parentPos.y + uy * radius,
+        x2: nodePos.x - ux * radius,
+        y2: nodePos.y - uy * radius,
+      }
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item))
 
   edgesList.forEach((edge, index) => {
     const line = document.createElementNS(svgNS, "line")
-    line.setAttribute("x1", edge.parentPos.x.toFixed(2))
-    line.setAttribute("y1", edge.parentPos.y.toFixed(2))
-    line.setAttribute("x2", edge.nodePos.x.toFixed(2))
-    line.setAttribute("y2", edge.nodePos.y.toFixed(2))
+    line.setAttribute("x1", edge.x1.toFixed(2))
+    line.setAttribute("y1", edge.y1.toFixed(2))
+    line.setAttribute("x2", edge.x2.toFixed(2))
+    line.setAttribute("y2", edge.y2.toFixed(2))
     line.classList.add("edge")
     line.style.animationDelay = `${index * 0.08}s`
     edges.appendChild(line)
