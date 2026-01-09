@@ -1,8 +1,6 @@
-import type { Graph, Node } from "@indra/core"
+import { IndraVersion, Graph, Node } from "@indra/core"
 
 const svgNS = "http://www.w3.org/2000/svg"
-
-console.log("Initializing app...")
 
 function getRequiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id)
@@ -15,12 +13,15 @@ function getRequiredElement<T extends HTMLElement>(id: string): T {
 const graphContainer = getRequiredElement<HTMLDivElement>("graph")
 const status = getRequiredElement<HTMLDivElement>("status")
 const title = getRequiredElement<HTMLDivElement>("graph-title")
+const version = getRequiredElement<HTMLDivElement>("version")
 
 let snapshot: Graph | null = null
 let resizeHandle = 0
 let tooltip: HTMLDivElement | null = null
 let activeNodeId: string | null = null
 let clickAwayBound = false
+
+version.textContent = IndraVersion
 
 function formatTime(iso: string): string {
   const date = new Date(iso)
@@ -375,12 +376,10 @@ function renderSnapshot(data: Graph): void {
 }
 
 async function loadSnapshot(): Promise<void> {
-  console.log("Loading graph snapshot...")
   const res = await fetch("http://localhost:5001/api/graph")
   if (!res.ok) {
     throw new Error("Failed to load graph snapshot")
   }
-  console.log("Loaded graph snapshot")
   const data = (await res.json()) as Graph
   renderSnapshot(data)
 }
@@ -399,10 +398,7 @@ const resizeObserver = new ResizeObserver(() => {
 
 resizeObserver.observe(graphContainer)
 
-console.log("Starting app...")
 loadSnapshot().catch((err) => {
   console.error(err)
   setStatus("Offline")
 })
-
-console.log("ABCCC")
