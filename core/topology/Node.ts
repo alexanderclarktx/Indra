@@ -39,6 +39,8 @@ export const NodeWorker = (node: Node): NodeWorker => {
 
       console.log({ id: node.id, prompt, message, seed, response })
 
+      if (!response) return
+
       return {
         read: false,
         from: node.id,

@@ -1,5 +1,5 @@
 export type ClaudeFetcher = {
-  fetch: (content: string) => Promise<string>
+  fetch: (content: string) => Promise<string | null>
 }
 
 export const ClaudeFetcher = (enabled: boolean): ClaudeFetcher => {
@@ -10,7 +10,7 @@ export const ClaudeFetcher = (enabled: boolean): ClaudeFetcher => {
     fetch: async (content: string) => {
       if (!key) return "Error: CLAUDE_API_KEY not set"
 
-      if (!enabled) return ""
+      if (!enabled) return null
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -45,7 +45,6 @@ export const ClaudeFetcher = (enabled: boolean): ClaudeFetcher => {
       })
 
       const responseJSON = await response.json() as { content: { type: string, text: string }[] }
-      // console.log("Claude response:", responseJSON)
 
       let lastText = ""
       for (const part of responseJSON.content) {
