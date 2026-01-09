@@ -1,0 +1,7 @@
+{
+  "name": "@indra/core",
+  "main": "./main.ts",
+  "dependencies": {
+    
+  }
+}

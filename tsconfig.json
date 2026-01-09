@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "Bundler",
+    "target": "esnext",
+    "moduleResolution": "node",
     "strict": true,
     "noEmit": true,
     "types": ["bun-types"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["core/**/*", "web/**/*"],
+  "exclude": ["node_modules"]
 }
