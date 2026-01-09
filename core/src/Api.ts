@@ -61,7 +61,7 @@ function isSafePath(pathname: string) {
 }
 
 Bun.serve({
-  port: 5000,
+  port: 5001,
   async fetch(req) {
     const url = new URL(req.url)
 
@@ -73,17 +73,19 @@ Bun.serve({
       return Response.json(snapshot)
     }
 
-    if (!isSafePath(url.pathname)) {
-      return new Response("Invalid path", { status: 400 })
-    }
+    return Response.error()
 
-    const file = Bun.file("web" + (url.pathname === "/" ? "/index.html" : url.pathname))
-    if (!(await file.exists())) {
-      console.log(`File not found: ${file.name}`)
-      return new Response("Not found", { status: 404 })
-    }
+    // if (!isSafePath(url.pathname)) {
+    //   return new Response("Invalid path", { status: 400 })
+    // }
 
-    return new Response(file)
+    // const file = Bun.file("web" + (url.pathname === "/" ? "/index.html" : url.pathname))
+    // if (!(await file.exists())) {
+    //   console.log(`File not found: ${file.name}`)
+    //   return new Response("Not found", { status: 404 })
+    // }
+
+    // return new Response(file)
   }
 })
 

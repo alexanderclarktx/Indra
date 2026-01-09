@@ -220,7 +220,7 @@ function renderSnapshot(data: GraphSnapshot): void {
 
 async function loadSnapshot(): Promise<void> {
   console.log("Loading graph snapshot...")
-  const res = await fetch("/api/graph")
+  const res = await fetch("http://localhost:5001/api/graph")
   if (!res.ok) {
     throw new Error("Failed to load graph snapshot")
   }
@@ -248,3 +248,5 @@ loadSnapshot().catch((err) => {
   console.error(err)
   setStatus("Offline")
 })
+
+console.log("ABCCC")
