@@ -1,0 +1,7 @@
+{
+  "name": "@indra/web",
+  "main": "./main.ts",
+  "scripts": {
+
+  }
+}
