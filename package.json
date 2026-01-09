@@ -1,0 +1,14 @@
+{
+  "name": "graph",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "bun-types": "^1.1.14",
+    "typescript": "^5.4.5"
+  }
+}
