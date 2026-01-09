@@ -18,6 +18,11 @@ export const demo: Graph = {
       parentId: "ingest",
       prompt: "Extract relevant tags from the summarized content. respond only with a comma separated list of tags."
     },
+    {
+      id: "suggestion",
+      parentId: "ingest",
+      prompt: "suggest three related topics that might interest the reader. respond only with a comma separated list of topics."
+    }
     // {
     //   id: "log",
     //   parentId: "tag",
