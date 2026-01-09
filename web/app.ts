@@ -23,11 +23,6 @@ let clickAwayBound = false
 
 version.textContent = IndraVersion
 
-function formatTime(iso: string): string {
-  const date = new Date(iso)
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-}
-
 function setStatus(text: string): void {
   status.textContent = text
 }
@@ -372,7 +367,6 @@ function renderSnapshot(data: Graph): void {
   const layout = buildSvg(data, width, height)
   graphContainer.appendChild(layout.svg)
   attachNodeInteractions(data.nodes, layout)
-  // setStatus(`Updated ${formatTime(data.updatedAt)}`)
 }
 
 async function loadSnapshot(): Promise<void> {
