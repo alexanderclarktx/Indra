@@ -14,6 +14,7 @@ function getRequiredElement<T extends HTMLElement>(id: string): T {
 
 const graphContainer = getRequiredElement<HTMLDivElement>("graph")
 const status = getRequiredElement<HTMLDivElement>("status")
+const title = getRequiredElement<HTMLDivElement>("graph-title")
 
 let snapshot: Graph | null = null
 let resizeHandle = 0
@@ -28,6 +29,10 @@ function formatTime(iso: string): string {
 
 function setStatus(text: string): void {
   status.textContent = text
+}
+
+function setTitle(text: string): void {
+  title.textContent = `Indra Topology: ${text}`
 }
 
 function ensureTooltip(): HTMLDivElement {
@@ -349,6 +354,7 @@ function renderSnapshot(data: Graph): void {
   graphContainer.innerHTML = ""
   hideTooltip()
   ensureClickAwayHandler()
+  setTitle(data.name)
 
   if (data.nodes.length === 0) {
     const placeholder = document.createElement("div")

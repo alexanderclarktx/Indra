@@ -10,6 +10,7 @@ function getRequiredElement(id) {
 }
 var graphContainer = getRequiredElement("graph");
 var status = getRequiredElement("status");
+var title = getRequiredElement("graph-title");
 var snapshot = null;
 var resizeHandle = 0;
 var tooltip = null;
@@ -17,6 +18,9 @@ var activeNodeId = null;
 var clickAwayBound = false;
 function setStatus(text) {
   status.textContent = text;
+}
+function setTitle(text) {
+  title.textContent = `Indra Topology: ${text}`;
 }
 function ensureTooltip() {
   if (!tooltip) {
@@ -189,9 +193,9 @@ function buildSvg(data, width, height) {
     label.setAttribute("text-anchor", "middle");
     label.setAttribute("dominant-baseline", "middle");
     label.textContent = truncateLabel(node.id, 12);
-    const title = document.createElementNS(svgNS, "title");
-    title.textContent = node.id;
-    group.append(title, circle, label);
+    const title2 = document.createElementNS(svgNS, "title");
+    title2.textContent = node.id;
+    group.append(title2, circle, label);
     wrapper.appendChild(group);
     nodes.appendChild(wrapper);
   });
@@ -276,6 +280,7 @@ function renderSnapshot(data) {
   graphContainer.innerHTML = "";
   hideTooltip();
   ensureClickAwayHandler();
+  setTitle(data.name);
   if (data.nodes.length === 0) {
     const placeholder = document.createElement("div");
     placeholder.className = "placeholder";
