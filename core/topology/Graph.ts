@@ -26,8 +26,8 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
   setInterval(() => {
     for (const worker of Object.values(workers)) {
       if (!worker.parentId) {
-        if (timer++ % 1000 !== 0) continue
-        console.log(`root: ${worker.id}`)
+        if (timer++ % 100 !== 0) continue
+        // console.log(`root: ${worker.id}`)
         const result = worker.process(null)
         result.then((res => {
           if (res) messages.push(res)
@@ -38,7 +38,7 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
       if (message.read) continue
       for (const worker of Object.values(workers)) {
         if (worker.parentId === message.from) {
-          console.log(`child: ${worker.id}`)
+          // console.log(`child: ${worker.id}`)
           const result = worker.process(message)
           result.then((res => {
             if (res) messages.push(res)

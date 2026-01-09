@@ -20,6 +20,9 @@ let resizeHandle = 0
 let tooltip: HTMLDivElement | null = null
 let activeNodeId: string | null = null
 let clickAwayBound = false
+let refreshInFlight = false
+const refreshIntervalMs = 2000
+let currentLayout: SvgLayout | null = null
 
 version.textContent = IndraVersion
 
@@ -170,6 +173,7 @@ type SvgLayout = LayoutResult & {
   svg: SVGSVGElement
   width: number
   height: number
+  nodeCounts: Map<string, SVGTextElement>
 }
 
 function buildSvg(data: Graph, width: number, height: number): SvgLayout {
@@ -181,6 +185,7 @@ function buildSvg(data: Graph, width: number, height: number): SvgLayout {
   const { positions, radius } = buildLayout(data.nodes, width, height)
   const edges = document.createElementNS(svgNS, "g")
   const nodes = document.createElementNS(svgNS, "g")
+  const nodeCounts = new Map<string, SVGTextElement>()
 
   const edgesList = data.nodes
     .map((node) => {
@@ -244,16 +249,24 @@ function buildSvg(data: Graph, width: number, height: number): SvgLayout {
     label.setAttribute("dominant-baseline", "middle")
     label.textContent = truncateLabel(node.id, 12)
 
+    const count = document.createElementNS(svgNS, "text")
+    count.classList.add("node-count")
+    count.setAttribute("text-anchor", "middle")
+    count.setAttribute("dominant-baseline", "middle")
+    count.setAttribute("y", `${-(radius + 12)}`)
+    count.textContent = String(node.processed ?? 0)
+    nodeCounts.set(node.id, count)
+
     const title = document.createElementNS(svgNS, "title")
     title.textContent = node.id
 
-    group.append(title, circle, label)
+    group.append(title, circle, label, count)
     wrapper.appendChild(group)
     nodes.appendChild(wrapper)
   })
 
   svg.append(edges, nodes)
-  return { svg, positions, radius, width, height }
+  return { svg, positions, radius, width, height, nodeCounts }
 }
 
 function setTooltipContent(tooltipEl: HTMLDivElement, node: Node): void {
@@ -358,6 +371,7 @@ function renderSnapshot(data: Graph): void {
     placeholder.textContent = "No nodes in topology."
     graphContainer.appendChild(placeholder)
     setStatus("No nodes in topology")
+    currentLayout = null
     return
   }
 
@@ -367,15 +381,57 @@ function renderSnapshot(data: Graph): void {
   const layout = buildSvg(data, width, height)
   graphContainer.appendChild(layout.svg)
   attachNodeInteractions(data.nodes, layout)
+  currentLayout = layout
+}
+
+function canUpdateCounts(current: Graph, next: Graph): boolean {
+  if (current.nodes.length !== next.nodes.length) {
+    return false
+  }
+  const currentById = new Map(current.nodes.map((node) => [node.id, node]))
+  for (const node of next.nodes) {
+    const existing = currentById.get(node.id)
+    if (!existing || existing.parentId !== node.parentId) {
+      return false
+    }
+  }
+  return true
+}
+
+function updateNodeCounts(data: Graph): boolean {
+  if (!snapshot || !currentLayout) {
+    return false
+  }
+  if (!canUpdateCounts(snapshot, data)) {
+    return false
+  }
+  data.nodes.forEach((node) => {
+    const countEl = currentLayout?.nodeCounts.get(node.id)
+    if (countEl) {
+      countEl.textContent = String(node.processed ?? 0)
+    }
+  })
+  snapshot = data
+  return true
 }
 
 async function loadSnapshot(): Promise<void> {
-  const res = await fetch("http://localhost:5001/api/graph")
-  if (!res.ok) {
-    throw new Error("Failed to load graph snapshot")
+  if (refreshInFlight) {
+    return
   }
-  const data = (await res.json()) as Graph
-  renderSnapshot(data)
+  refreshInFlight = true
+  try {
+    const res = await fetch("http://localhost:5001/api/graph")
+    if (!res.ok) {
+      throw new Error("Failed to load graph snapshot")
+    }
+    const data = (await res.json()) as Graph
+    if (!updateNodeCounts(data)) {
+      renderSnapshot(data)
+    }
+  } finally {
+    refreshInFlight = false
+  }
 }
 
 const resizeObserver = new ResizeObserver(() => {
@@ -396,3 +452,10 @@ loadSnapshot().catch((err) => {
   console.error(err)
   setStatus("Offline")
 })
+
+setInterval(() => {
+  loadSnapshot().catch((err) => {
+    console.error(err)
+    setStatus("Offline")
+  })
+}, refreshIntervalMs)

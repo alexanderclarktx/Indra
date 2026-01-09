@@ -2,6 +2,7 @@ export type Node = {
   id: string
   parentId: string | null
   prompt: string
+  processed?: number
 }
 
 export type Message = {
@@ -20,6 +21,7 @@ export const NodeWorker = (node: Node): NodeWorker => {
     ...node,
     processed: 0,
     process: async (message: Message | null) => {
+      worker.processed += 1
 
       if (node.id === "ingest") {
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -31,6 +33,7 @@ export const NodeWorker = (node: Node): NodeWorker => {
       }
 
       if (node.id === "tag") {
+        if (Math.random() < 0.3) return
         return {
           read: false,
           from: "tag",
@@ -39,10 +42,8 @@ export const NodeWorker = (node: Node): NodeWorker => {
       }
 
       if (node.id === "log") {
-        console.log("log:", message?.text)
+        // console.log("log:", message?.text)
       }
-
-      worker.processed += 1
     }
   }
 

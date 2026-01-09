@@ -1,4 +1,4 @@
-import { Graph, GraphWorker } from "@indra/core"
+import { GraphWorker } from "@indra/core"
 import { demo } from "./demo"
 
 const graphWorker = GraphWorker(demo)
@@ -19,7 +19,11 @@ const server = Bun.serve({
     }
 
     if (url.pathname === "/api/graph") {
-      return Response.json(graphWorker.graph, { headers: corsHeaders })
+      const nodes = graphWorker.graph.nodes.map((node) => ({
+        ...node,
+        processed: graphWorker.workers[node.id]?.processed ?? 0
+      }))
+      return Response.json({ ...graphWorker.graph, nodes }, { headers: corsHeaders })
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders })
