@@ -1,4 +1,4 @@
-import { Node, NodeWorker } from "@indra/core"
+import { Message, Node, NodeWorker } from "@indra/core"
 
 export type Graph = {
   id: string
@@ -13,6 +13,7 @@ export type GraphWorker = {
 export const GraphWorker = (graph: Graph): GraphWorker => {
 
   const workers: Record<string, NodeWorker> = {}
+  const messages: Message[] = []
 
   for (const node of graph.nodes) {
     workers[node.id] = NodeWorker(node)
@@ -21,11 +22,29 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
   setInterval(() => {
     for (const worker of Object.values(workers)) {
       if (!worker.parentId) {
-        // console.log(`Processing root node ${worker.id}`)
-        worker.process()
+        console.log(`root: ${worker.id}`)
+        const result = worker.process(null)
+        if (result) {
+          messages.push(result)
+          // messages[worker.id] = result
+        }
       }
     }
-  }, 1000)
+    for (const message of messages) {
+      if (message.read) continue
+      for (const worker of Object.values(workers)) {
+        if (worker.parentId === message.from) {
+          console.log(`child: ${worker.id}`)
+          const result = worker.process(message)
+          if (result) {
+            messages.push(result)
+          }
+        }
+      }
+      message.read = true
+
+    }
+  }, 5000)
 
   return { }
 }
