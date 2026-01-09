@@ -60,12 +60,10 @@ function isSafePath(pathname: string) {
   return !pathname.includes("..") && !pathname.includes("\\")
 }
 
-Bun.serve({
+const server = Bun.serve({
   port: 5001,
   async fetch(req) {
     const url = new URL(req.url)
-
-    // console.log(`Received request for ${url.pathname}`)
 
     if (url.pathname === "/api/graph") {
       snapshot.updatedAt = new Date().toISOString()
@@ -74,19 +72,7 @@ Bun.serve({
     }
 
     return Response.error()
-
-    // if (!isSafePath(url.pathname)) {
-    //   return new Response("Invalid path", { status: 400 })
-    // }
-
-    // const file = Bun.file("web" + (url.pathname === "/" ? "/index.html" : url.pathname))
-    // if (!(await file.exists())) {
-    //   console.log(`File not found: ${file.name}`)
-    //   return new Response("Not found", { status: 404 })
-    // }
-
-    // return new Response(file)
   }
 })
 
-console.log("Graph stub running at http://localhost:5000")
+console.log(`Indra API running at ${server.url}`)
