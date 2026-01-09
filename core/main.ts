@@ -1,6 +1,6 @@
-import type { GraphSnapshot } from "./types";
+import type { GraphSnapshot } from "./types"
 
-// const webDir = new URL("../web/", import.meta.url);
+// const webDir = new URL("../web/", import.meta.url)
 
 const snapshot: GraphSnapshot = {
   graph: {
@@ -56,46 +56,36 @@ const snapshot: GraphSnapshot = {
     }
   ],
   updatedAt: new Date().toISOString()
-};
-
-function isSafePath(pathname: string) {
-  return !pathname.includes("..") && !pathname.includes("\\");
 }
 
-// function resolveWebFile(pathname: string) {
-//   return new URL(`${
-
-  // }/web${pathname === "/" ? "/index.html" : pathname}`)
-  // if (pathname === "/") return new URL("index.html", webDir);
-  // const trimmed = pathname.replace(/^\//, "");
-  // return new URL(trimmed, webDir);
-// }
+function isSafePath(pathname: string) {
+  return !pathname.includes("..") && !pathname.includes("\\")
+}
 
 Bun.serve({
   port: 5000,
   async fetch(req) {
-    const url = new URL(req.url);
+    const url = new URL(req.url)
 
-    console.log(`Received request for ${url.pathname}`);
+    console.log(`Received request for ${url.pathname}`)
 
     if (url.pathname === "/api/graph") {
-      snapshot.updatedAt = new Date().toISOString();
-      return Response.json(snapshot);
+      snapshot.updatedAt = new Date().toISOString()
+      return Response.json(snapshot)
     }
 
     if (!isSafePath(url.pathname)) {
-      return new Response("Invalid path", { status: 400 });
+      return new Response("Invalid path", { status: 400 })
     }
 
-    // const fileUrl = resolveWebFile(url.pathname);
-    const file = Bun.file("web" + (url.pathname === "/" ? "/index.html" : url.pathname));
+    const file = Bun.file("web" + (url.pathname === "/" ? "/index.html" : url.pathname))
     if (!(await file.exists())) {
-      console.log(`File not found: ${file.name}`);
-      return new Response("Not found", { status: 404 });
+      console.log(`File not found: ${file.name}`)
+      return new Response("Not found", { status: 404 })
     }
 
-    return new Response(file);
+    return new Response(file)
   }
-});
+})
 
-console.log("Graph stub running at http://localhost:5000");
+console.log("Graph stub running at http://localhost:5000")
