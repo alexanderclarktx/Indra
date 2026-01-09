@@ -58,6 +58,7 @@ body::before {
 
 .title {
   font-weight: 600;
+  font-size: large;
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -91,6 +92,7 @@ body::before {
   transform-origin: center;
   animation: node-in 0.7s ease forwards;
   cursor: pointer;
+  user-select: none;
 }
 
 .node-circle {
@@ -112,24 +114,25 @@ body::before {
 .node-label {
   fill: var(--label);
   font-family: "Space Mono", monospace;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.08em;
+  user-select: none;
 }
 
 .node-tooltip {
   position: absolute;
   z-index: 3;
-  min-width: 180px;
-  max-width: 280px;
+  min-width: 280px;
+  max-width: 520px;
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   background: rgba(6, 6, 6, 0.92);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   font-family: "Space Mono", monospace;
-  font-size: 0.72rem;
+  font-size: 0.84rem;
   letter-spacing: 0.02em;
-  line-height: 1.4;
+  line-height: 1.5;
   color: var(--label);
   opacity: 0;
   pointer-events: none;
@@ -161,8 +164,8 @@ body::before {
 .node-tooltip-value {
   flex: 1;
   color: rgba(255, 255, 255, 0.9);
-  max-height: 160px;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
   scrollbar-width: thin;
 }
 
