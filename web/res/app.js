@@ -12,12 +12,43 @@ var graphContainer = getRequiredElement("graph");
 var status = getRequiredElement("status");
 var snapshot = null;
 var resizeHandle = 0;
+var tooltip = null;
+var activeNodeId = null;
+var clickAwayBound = false;
 function formatTime(iso) {
   const date = new Date(iso);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 function setStatus(text) {
   status.textContent = text;
+}
+function ensureTooltip() {
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.className = "node-tooltip";
+    tooltip.setAttribute("aria-hidden", "true");
+    tooltip.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+  }
+  graphContainer.appendChild(tooltip);
+  return tooltip;
+}
+function hideTooltip() {
+  if (tooltip) {
+    tooltip.classList.remove("is-open");
+    tooltip.setAttribute("aria-hidden", "true");
+  }
+  activeNodeId = null;
+}
+function ensureClickAwayHandler() {
+  if (clickAwayBound) {
+    return;
+  }
+  document.addEventListener("click", () => {
+    hideTooltip();
+  });
+  clickAwayBound = true;
 }
 function buildLayout(nodes, width, height) {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
@@ -153,6 +184,7 @@ function buildSvg(data, width, height) {
     const group = document.createElementNS(svgNS, "g");
     group.classList.add("node");
     group.style.animationDelay = `${index * 0.06}s`;
+    group.dataset.nodeId = node.id;
     const circle = document.createElementNS(svgNS, "circle");
     circle.setAttribute("r", radius.toFixed(2));
     circle.classList.add("node-circle", node.type);
@@ -168,11 +200,90 @@ function buildSvg(data, width, height) {
     nodes.appendChild(wrapper);
   });
   svg.append(edges, nodes);
-  return svg;
+  return { svg, positions, radius, width, height };
+}
+function setTooltipContent(tooltipEl, node) {
+  tooltipEl.innerHTML = "";
+  const rows = [
+    { label: "name", value: node.id }
+  ];
+  if (node.type === "agent") {
+    rows.push({ label: "prompt", value: node.prompt });
+  } else {
+    rows.push({ label: "code", value: node.code });
+  }
+  rows.forEach((row) => {
+    const rowEl = document.createElement("div");
+    rowEl.className = "node-tooltip-row";
+    const key = document.createElement("span");
+    key.className = "node-tooltip-key";
+    key.textContent = `${row.label}:`;
+    const value = document.createElement("span");
+    value.className = "node-tooltip-value";
+    value.textContent = row.value;
+    rowEl.append(key, value);
+    tooltipEl.appendChild(rowEl);
+  });
+}
+function positionTooltip(position, layout) {
+  if (!tooltip) {
+    return;
+  }
+  const rect = graphContainer.getBoundingClientRect();
+  const scaleX = rect.width / layout.width;
+  const scaleY = rect.height / layout.height;
+  const x = position.x * scaleX;
+  const y = position.y * scaleY;
+  const offsetY = (layout.radius + 12) * scaleY;
+  tooltip.style.visibility = "hidden";
+  tooltip.classList.add("is-open");
+  tooltip.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => {
+    if (!tooltip) {
+      return;
+    }
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const margin = 8;
+    let left = x - tooltipRect.width / 2;
+    let top = y + offsetY;
+    left = Math.min(Math.max(margin, left), rect.width - tooltipRect.width - margin);
+    top = Math.min(Math.max(margin, top), rect.height - tooltipRect.height - margin);
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+    tooltip.style.visibility = "visible";
+  });
+}
+function attachNodeInteractions(nodes, layout) {
+  const tooltipEl = ensureTooltip();
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const groups = layout.svg.querySelectorAll(".node");
+  groups.forEach((group) => {
+    const nodeId = group.dataset.nodeId;
+    if (!nodeId) {
+      return;
+    }
+    const node = nodesById.get(nodeId);
+    const position = layout.positions.get(nodeId);
+    if (!node || !position) {
+      return;
+    }
+    group.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (activeNodeId === node.id) {
+        hideTooltip();
+        return;
+      }
+      activeNodeId = node.id;
+      setTooltipContent(tooltipEl, node);
+      positionTooltip(position, layout);
+    });
+  });
 }
 function renderSnapshot(data) {
   snapshot = data;
   graphContainer.innerHTML = "";
+  hideTooltip();
+  ensureClickAwayHandler();
   if (data.graph.nodes.length === 0) {
     const placeholder = document.createElement("div");
     placeholder.className = "placeholder";
@@ -184,8 +295,9 @@ function renderSnapshot(data) {
   const rect = graphContainer.getBoundingClientRect();
   const width = Math.max(320, Math.floor(rect.width));
   const height = Math.max(320, Math.floor(rect.height));
-  const svg = buildSvg(data, width, height);
-  graphContainer.appendChild(svg);
+  const layout = buildSvg(data, width, height);
+  graphContainer.appendChild(layout.svg);
+  attachNodeInteractions(data.graph.nodes, layout);
   setStatus(`Updated ${formatTime(data.updatedAt)}`);
 }
 async function loadSnapshot() {

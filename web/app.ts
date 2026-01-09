@@ -17,6 +17,9 @@ const status = getRequiredElement<HTMLDivElement>("status")
 
 let snapshot: GraphSnapshot | null = null
 let resizeHandle = 0
+let tooltip: HTMLDivElement | null = null
+let activeNodeId: string | null = null
+let clickAwayBound = false
 
 function formatTime(iso: string): string {
   const date = new Date(iso)
@@ -25,6 +28,37 @@ function formatTime(iso: string): string {
 
 function setStatus(text: string): void {
   status.textContent = text
+}
+
+function ensureTooltip(): HTMLDivElement {
+  if (!tooltip) {
+    tooltip = document.createElement("div")
+    tooltip.className = "node-tooltip"
+    tooltip.setAttribute("aria-hidden", "true")
+    tooltip.addEventListener("click", (event) => {
+      event.stopPropagation()
+    })
+  }
+  graphContainer.appendChild(tooltip)
+  return tooltip
+}
+
+function hideTooltip(): void {
+  if (tooltip) {
+    tooltip.classList.remove("is-open")
+    tooltip.setAttribute("aria-hidden", "true")
+  }
+  activeNodeId = null
+}
+
+function ensureClickAwayHandler(): void {
+  if (clickAwayBound) {
+    return
+  }
+  document.addEventListener("click", () => {
+    hideTooltip()
+  })
+  clickAwayBound = true
 }
 
 type NodePosition = {
@@ -131,7 +165,13 @@ function truncateLabel(text: string, maxLength: number): string {
   return `${text.slice(0, Math.max(1, maxLength - 3))}...`
 }
 
-function buildSvg(data: GraphSnapshot, width: number, height: number): SVGSVGElement {
+type SvgLayout = LayoutResult & {
+  svg: SVGSVGElement
+  width: number
+  height: number
+}
+
+function buildSvg(data: GraphSnapshot, width: number, height: number): SvgLayout {
   const svg = document.createElementNS(svgNS, "svg")
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`)
   svg.setAttribute("width", `${width}`)
@@ -191,6 +231,7 @@ function buildSvg(data: GraphSnapshot, width: number, height: number): SVGSVGEle
     const group = document.createElementNS(svgNS, "g")
     group.classList.add("node")
     group.style.animationDelay = `${index * 0.06}s`
+    group.dataset.nodeId = node.id
 
     const circle = document.createElementNS(svgNS, "circle")
     circle.setAttribute("r", radius.toFixed(2))
@@ -211,12 +252,103 @@ function buildSvg(data: GraphSnapshot, width: number, height: number): SVGSVGEle
   })
 
   svg.append(edges, nodes)
-  return svg
+  return { svg, positions, radius, width, height }
+}
+
+function setTooltipContent(tooltipEl: HTMLDivElement, node: GraphNode): void {
+  tooltipEl.innerHTML = ""
+  const rows: Array<{ label: string; value: string }> = [
+    { label: "name", value: node.id },
+  ]
+
+  if (node.type === "agent") {
+    rows.push({ label: "prompt", value: node.prompt })
+  } else {
+    rows.push({ label: "code", value: node.code })
+  }
+
+  rows.forEach((row) => {
+    const rowEl = document.createElement("div")
+    rowEl.className = "node-tooltip-row"
+
+    const key = document.createElement("span")
+    key.className = "node-tooltip-key"
+    key.textContent = `${row.label}:`
+
+    const value = document.createElement("span")
+    value.className = "node-tooltip-value"
+    value.textContent = row.value
+
+    rowEl.append(key, value)
+    tooltipEl.appendChild(rowEl)
+  })
+}
+
+function positionTooltip(position: NodePosition, layout: SvgLayout): void {
+  if (!tooltip) {
+    return
+  }
+  const rect = graphContainer.getBoundingClientRect()
+  const scaleX = rect.width / layout.width
+  const scaleY = rect.height / layout.height
+  const x = position.x * scaleX
+  const y = position.y * scaleY
+  const offsetY = (layout.radius + 12) * scaleY
+
+  tooltip.style.visibility = "hidden"
+  tooltip.classList.add("is-open")
+  tooltip.setAttribute("aria-hidden", "false")
+
+  requestAnimationFrame(() => {
+    if (!tooltip) {
+      return
+    }
+    const tooltipRect = tooltip.getBoundingClientRect()
+    const margin = 8
+    let left = x - tooltipRect.width / 2
+    let top = y + offsetY
+    left = Math.min(Math.max(margin, left), rect.width - tooltipRect.width - margin)
+    top = Math.min(Math.max(margin, top), rect.height - tooltipRect.height - margin)
+    tooltip.style.left = `${left}px`
+    tooltip.style.top = `${top}px`
+    tooltip.style.visibility = "visible"
+  })
+}
+
+function attachNodeInteractions(nodes: GraphNode[], layout: SvgLayout): void {
+  const tooltipEl = ensureTooltip()
+  const nodesById = new Map(nodes.map((node) => [node.id, node]))
+  const groups = layout.svg.querySelectorAll<SVGGElement>(".node")
+
+  groups.forEach((group) => {
+    const nodeId = group.dataset.nodeId
+    if (!nodeId) {
+      return
+    }
+    const node = nodesById.get(nodeId)
+    const position = layout.positions.get(nodeId)
+    if (!node || !position) {
+      return
+    }
+
+    group.addEventListener("click", (event) => {
+      event.stopPropagation()
+      if (activeNodeId === node.id) {
+        hideTooltip()
+        return
+      }
+      activeNodeId = node.id
+      setTooltipContent(tooltipEl, node)
+      positionTooltip(position, layout)
+    })
+  })
 }
 
 function renderSnapshot(data: GraphSnapshot): void {
   snapshot = data
   graphContainer.innerHTML = ""
+  hideTooltip()
+  ensureClickAwayHandler()
 
   if (data.graph.nodes.length === 0) {
     const placeholder = document.createElement("div")
@@ -230,8 +362,9 @@ function renderSnapshot(data: GraphSnapshot): void {
   const rect = graphContainer.getBoundingClientRect()
   const width = Math.max(320, Math.floor(rect.width))
   const height = Math.max(320, Math.floor(rect.height))
-  const svg = buildSvg(data, width, height)
-  graphContainer.appendChild(svg)
+  const layout = buildSvg(data, width, height)
+  graphContainer.appendChild(layout.svg)
+  attachNodeInteractions(data.graph.nodes, layout)
   setStatus(`Updated ${formatTime(data.updatedAt)}`)
 }
 
