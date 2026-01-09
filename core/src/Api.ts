@@ -64,14 +64,23 @@ const server = Bun.serve({
   port: 5001,
   async fetch(req) {
     const url = new URL(req.url)
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type"
+    }
+
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders })
+    }
 
     if (url.pathname === "/api/graph") {
       snapshot.updatedAt = new Date().toISOString()
       console.log("Serving graph snapshot")
-      return Response.json(snapshot)
+      return Response.json(snapshot, { headers: corsHeaders })
     }
 
-    return Response.error()
+    return new Response("Not found", { status: 404, headers: corsHeaders })
   }
 })
 
