@@ -12,8 +12,7 @@ export const NodeWorker = (node: Node): NodeWorker => {
   return {
     ...node,
     process: () => {
-      console.log(`Processing node ${node.id} with prompt: ${node.prompt}`)
-      // Add your node processing logic here
+      // console.log(`node ${node.id}`)
     }
   }
 }

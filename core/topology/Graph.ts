@@ -21,8 +21,8 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
   setInterval(() => {
     for (const worker of Object.values(workers)) {
       if (!worker.parentId) {
-        console.log(`Processing root node ${worker.id}`)
-        // worker.process()
+        // console.log(`Processing root node ${worker.id}`)
+        worker.process()
       }
     }
   }, 1000)
