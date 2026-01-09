@@ -11,15 +11,16 @@ export type Message = {
 }
 
 export type NodeWorker = Node & {
-  process: (message: Message | null) => Message | void
+  process: (message: Message | null) => Promise<Message | void>
 }
 
 export const NodeWorker = (node: Node): NodeWorker => {
   return {
     ...node,
-    process: (message: Message | null) => {
+    process: async (message: Message | null) => {
 
       if (node.id === "ingest") {
+        await new Promise(resolve => setTimeout(resolve, 1000))
         return {
           read: false,
           from: "ingest",
