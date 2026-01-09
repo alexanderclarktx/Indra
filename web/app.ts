@@ -171,10 +171,12 @@ function buildSvg(data: GraphSnapshot, width: number, height: number): SVGSVGEle
     if (!position) {
       return
     }
+    const wrapper = document.createElementNS(svgNS, "g")
+    wrapper.setAttribute("transform", `translate(${position.x}, ${position.y})`)
+
     const group = document.createElementNS(svgNS, "g")
     group.classList.add("node")
     group.style.animationDelay = `${index * 0.06}s`
-    group.setAttribute("transform", `translate(${position.x}, ${position.y})`)
 
     const circle = document.createElementNS(svgNS, "circle")
     circle.setAttribute("r", radius.toFixed(2))
@@ -190,7 +192,8 @@ function buildSvg(data: GraphSnapshot, width: number, height: number): SVGSVGEle
     title.textContent = node.id
 
     group.append(title, circle, label)
-    nodes.appendChild(group)
+    wrapper.appendChild(group)
+    nodes.appendChild(wrapper)
   })
 
   svg.append(edges, nodes)

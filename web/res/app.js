@@ -134,10 +134,11 @@ function buildSvg(data, width, height) {
     if (!position) {
       return;
     }
+    const wrapper = document.createElementNS(svgNS, "g");
+    wrapper.setAttribute("transform", `translate(${position.x}, ${position.y})`);
     const group = document.createElementNS(svgNS, "g");
     group.classList.add("node");
     group.style.animationDelay = `${index * 0.06}s`;
-    group.setAttribute("transform", `translate(${position.x}, ${position.y})`);
     const circle = document.createElementNS(svgNS, "circle");
     circle.setAttribute("r", radius.toFixed(2));
     circle.classList.add("node-circle", node.type);
@@ -149,7 +150,8 @@ function buildSvg(data, width, height) {
     const title = document.createElementNS(svgNS, "title");
     title.textContent = node.id;
     group.append(title, circle, label);
-    nodes.appendChild(group);
+    wrapper.appendChild(group);
+    nodes.appendChild(wrapper);
   });
   svg.append(edges, nodes);
   return svg;
