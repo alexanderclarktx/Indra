@@ -32,8 +32,6 @@ export const NodeWorker = (node: Node): NodeWorker => {
         }
       }
 
-      // abc
-
       if (node.id === "tag") {
         if (Math.random() < 0.3) return
         return {
