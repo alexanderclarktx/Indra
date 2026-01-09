@@ -1,6 +1,6 @@
-import { Graph } from "@indra/core"
+import { Graph, GraphWorker } from "@indra/core"
 
-const snapshot: Graph = {
+const demo: Graph = {
   id: "demo",
   name: "demo",
   nodes: [
@@ -22,6 +22,8 @@ const snapshot: Graph = {
   ]
 }
 
+const graphWorker = GraphWorker(demo)
+
 const server = Bun.serve({
   port: 5001,
   async fetch(req) {
@@ -38,8 +40,7 @@ const server = Bun.serve({
     }
 
     if (url.pathname === "/api/graph") {
-      console.log("Serving graph snapshot")
-      return Response.json(snapshot, { headers: corsHeaders })
+      return Response.json(demo, { headers: corsHeaders })
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders })
