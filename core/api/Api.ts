@@ -7,17 +7,17 @@ const snapshot: Graph = {
     {
       id: "ingest",
       parentId: null,
-      prompt: "Classify incoming events and route them to the correct handler."
+      prompt: "go to a random wikipedia page (https://en.wikipedia.org/wiki/special:random) and summarize the content in a few sentences."
     },
     {
-      id: "enrich",
+      id: "tag",
       parentId: "ingest",
-      prompt: "Enrich the incoming event with additional context."
+      prompt: "Extract relevant tags from the summarized content."
     },
     {
-      id: "decide",
-      parentId: "enrich",
-      prompt: "Select the next action and required tools."
+      id: "log",
+      parentId: "tag",
+      prompt: "log the extracted tags to the console."
     }
   ]
 }
