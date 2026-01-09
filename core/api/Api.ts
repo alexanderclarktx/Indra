@@ -19,7 +19,7 @@ const server = Bun.serve({
     }
 
     if (url.pathname === "/api/graph") {
-      return Response.json(demo, { headers: corsHeaders })
+      return Response.json(graphWorker.graph, { headers: corsHeaders })
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders })

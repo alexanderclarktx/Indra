@@ -11,12 +11,14 @@ export type Message = {
 }
 
 export type NodeWorker = Node & {
+  processed: number
   process: (message: Message | null) => Promise<Message | void>
 }
 
 export const NodeWorker = (node: Node): NodeWorker => {
-  return {
+  const worker = {
     ...node,
+    processed: 0,
     process: async (message: Message | null) => {
 
       if (node.id === "ingest") {
@@ -39,6 +41,10 @@ export const NodeWorker = (node: Node): NodeWorker => {
       if (node.id === "log") {
         console.log("log:", message?.text)
       }
+
+      worker.processed += 1
     }
   }
+
+  return worker
 }

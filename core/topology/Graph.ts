@@ -7,6 +7,8 @@ export type Graph = {
 }
 
 export type GraphWorker = {
+  graph: Graph
+  workers: Record<string, NodeWorker>
   // process: (graph: Graph) => void
 }
 
@@ -47,5 +49,8 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
     }
   }, 5)
 
-  return {}
+  return {
+    graph,
+    workers
+  }
 }
