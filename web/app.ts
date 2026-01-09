@@ -1,19 +1,72 @@
-const meta = document.getElementById("graph-meta");
-const updated = document.getElementById("updated");
-const metrics = document.getElementById("metrics");
-const nodes = document.getElementById("nodes");
-const audit = document.getElementById("audit");
-const refresh = document.getElementById("refresh");
+type NodeType = "agent" | "code";
 
-let snapshot = null;
-let activeNodeId = null;
+type NodeBase = {
+  id: string;
+  parentId?: string | null;
+  type: NodeType;
+};
 
-function formatTime(iso) {
+type AgentNode = NodeBase & {
+  type: "agent";
+  prompt: string;
+};
+
+type CodeNode = NodeBase & {
+  type: "code";
+  code: string;
+};
+
+type GraphNode = AgentNode | CodeNode;
+
+type Graph = {
+  id: string;
+  name: string;
+  nodes: GraphNode[];
+};
+
+type AuditEvent = {
+  id: string;
+  nodeId: string;
+  message: string;
+  timestamp: string;
+};
+
+type MetricPoint = {
+  label: string;
+  value: number;
+};
+
+type GraphSnapshot = {
+  graph: Graph;
+  audit: AuditEvent[];
+  metrics: MetricPoint[];
+  updatedAt: string;
+};
+
+function getRequiredElement<T extends HTMLElement>(id: string): T {
+  const element = document.getElementById(id);
+  if (!element) {
+    throw new Error(`Missing element with id "${id}"`);
+  }
+  return element as T;
+}
+
+const meta = getRequiredElement<HTMLDivElement>("graph-meta");
+const updated = getRequiredElement<HTMLSpanElement>("updated");
+const metrics = getRequiredElement<HTMLDivElement>("metrics");
+const nodes = getRequiredElement<HTMLDivElement>("nodes");
+const audit = getRequiredElement<HTMLDivElement>("audit");
+const refresh = getRequiredElement<HTMLButtonElement>("refresh");
+
+let snapshot: GraphSnapshot | null = null;
+let activeNodeId: string | null = null;
+
+function formatTime(iso: string): string {
   const date = new Date(iso);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function renderMeta(data) {
+function renderMeta(data: GraphSnapshot) {
   meta.innerHTML = "";
   const name = document.createElement("span");
   name.textContent = `Name: ${data.graph.name}`;
@@ -24,7 +77,7 @@ function renderMeta(data) {
   meta.append(name, id, count);
 }
 
-function renderMetrics(data) {
+function renderMetrics(data: GraphSnapshot) {
   metrics.innerHTML = "";
   data.metrics.forEach((metric) => {
     const item = document.createElement("div");
@@ -32,13 +85,13 @@ function renderMetrics(data) {
     const label = document.createElement("span");
     label.textContent = metric.label;
     const value = document.createElement("strong");
-    value.textContent = metric.value;
+    value.textContent = String(metric.value);
     item.append(label, value);
     metrics.append(item);
   });
 }
 
-function renderNodes(data) {
+function renderNodes(data: GraphSnapshot) {
   nodes.innerHTML = "";
   data.graph.nodes.forEach((node) => {
     const card = document.createElement("button");
@@ -67,7 +120,7 @@ function renderNodes(data) {
   });
 }
 
-function renderAudit(data) {
+function renderAudit(data: GraphSnapshot) {
   audit.innerHTML = "";
   const entries = activeNodeId
     ? data.audit.filter((item) => item.nodeId === activeNodeId)
@@ -93,7 +146,7 @@ function renderAudit(data) {
   });
 }
 
-function render(data) {
+function render(data: GraphSnapshot) {
   snapshot = data;
   renderMeta(data);
   renderMetrics(data);
@@ -102,12 +155,12 @@ function render(data) {
   updated.textContent = `Updated ${formatTime(data.updatedAt)}`;
 }
 
-async function loadSnapshot() {
+async function loadSnapshot(): Promise<void> {
   const res = await fetch("/api/graph");
   if (!res.ok) {
     throw new Error("Failed to load graph snapshot");
   }
-  const data = await res.json();
+  const data = (await res.json()) as GraphSnapshot;
   render(data);
 }
 

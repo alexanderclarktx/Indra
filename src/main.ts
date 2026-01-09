@@ -1,6 +1,6 @@
 import type { GraphSnapshot } from "./types";
 
-const publicDir = new URL("../public/", import.meta.url);
+const webDir = new URL("../web/", import.meta.url);
 
 const snapshot: GraphSnapshot = {
   graph: {
@@ -62,10 +62,10 @@ function isSafePath(pathname: string) {
   return !pathname.includes("..") && !pathname.includes("\\");
 }
 
-function resolvePublicFile(pathname: string) {
-  if (pathname === "/") return new URL("index.html", publicDir);
+function resolveWebFile(pathname: string) {
+  if (pathname === "/") return new URL("index.html", webDir);
   const trimmed = pathname.replace(/^\//, "");
-  return new URL(trimmed, publicDir);
+  return new URL(trimmed, webDir);
 }
 
 Bun.serve({
@@ -84,7 +84,7 @@ Bun.serve({
       return new Response("Invalid path", { status: 400 });
     }
 
-    const fileUrl = resolvePublicFile(url.pathname);
+    const fileUrl = resolveWebFile(url.pathname);
     const file = Bun.file(fileUrl);
     if (!(await file.exists())) {
       return new Response("Not found", { status: 404 });
