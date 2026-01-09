@@ -1,47 +1,51 @@
-type NodeType = "agent" | "code";
 
-type NodeBase = {
-  id: string;
-  parentId?: string | null;
-  type: NodeType;
-};
 
-type AgentNode = NodeBase & {
-  type: "agent";
-  prompt: string;
-};
+// type NodeType = "agent" | "code";
 
-type CodeNode = NodeBase & {
-  type: "code";
-  code: string;
-};
+import { GraphSnapshot } from "@indra/core"
 
-type GraphNode = AgentNode | CodeNode;
+// type NodeBase = {
+//   id: string;
+//   parentId?: string | null;
+//   type: NodeType;
+// };
 
-type Graph = {
-  id: string;
-  name: string;
-  nodes: GraphNode[];
-};
+// type AgentNode = NodeBase & {
+//   type: "agent";
+//   prompt: string;
+// };
 
-type AuditEvent = {
-  id: string;
-  nodeId: string;
-  message: string;
-  timestamp: string;
-};
+// type CodeNode = NodeBase & {
+//   type: "code";
+//   code: string;
+// };
 
-type MetricPoint = {
-  label: string;
-  value: number;
-};
+// type GraphNode = AgentNode | CodeNode;
 
-type GraphSnapshot = {
-  graph: Graph;
-  audit: AuditEvent[];
-  metrics: MetricPoint[];
-  updatedAt: string;
-};
+// type Graph = {
+//   id: string;
+//   name: string;
+//   nodes: GraphNode[];
+// };
+
+// type AuditEvent = {
+//   id: string;
+//   nodeId: string;
+//   message: string;
+//   timestamp: string;
+// };
+
+// type MetricPoint = {
+//   label: string;
+//   value: number;
+// };
+
+// type GraphSnapshot = {
+//   graph: Graph;
+//   audit: AuditEvent[];
+//   metrics: MetricPoint[];
+//   updatedAt: string;
+// };
 
 function getRequiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);

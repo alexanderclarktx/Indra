@@ -6,7 +6,9 @@
     "noEmit": true,
     "types": ["bun-types"],
     "skipLibCheck": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": { "*": ["node_modules/*"] },
+    "baseUrl": "."
   },
   "include": ["core/**/*", "web/**/*"],
   "exclude": ["node_modules"]

@@ -1,6 +1,6 @@
 {
   "name": "indra",
-  "private": true,
+  "license": "MIT",
   "workspaces": [
     "core",
     "web"

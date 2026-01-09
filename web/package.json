@@ -1,6 +1,9 @@
 {
   "name": "@indra/web",
   "main": "./main.ts",
+  "dependencies": {
+    "@indra/core": "*"
+  },
   "scripts": {
 
   }
