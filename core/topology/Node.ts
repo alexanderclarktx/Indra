@@ -34,7 +34,7 @@ export const NodeWorker = (
   onEvent?: (event: ProcessingEvent) => void
 ): NodeWorker => {
 
-  const claude = ClaudeFetcher(false)
+  const claude = ClaudeFetcher(true)
 
   const worker = {
     ...node,
