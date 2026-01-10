@@ -1,17 +1,21 @@
 🔥 **Indra** is an Event Processing system for AI agents. 
 
+<p align="center">
+  <img style="width:80%" src="screenshot.png"/>
+</p>
+
 ## Architecture
-Graphs are defined as nodes with parent relationships and prompts.
-Each node can optionally define a `seed` function for external input.
 
 ```ts
-export type Graph = {
+// graphs are a DAG of nodes
+type Graph = {
   id: string
   name: string
   nodes: Node[]
 }
 
-export type Node = {
+// each node can define its own prompt
+type Node = {
   id: string
   parentId: string | null
   prompt: string
