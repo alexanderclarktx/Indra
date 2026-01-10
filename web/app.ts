@@ -32,7 +32,12 @@ let currentLayout: SvgLayout | null = null
 let processingEventsCacheKey = ""
 const processingExpandState = new Map<
   string,
-  { inputExpanded: boolean; outputExpanded: boolean }
+  {
+    promptExpanded: boolean
+    seedExpanded: boolean
+    inputExpanded: boolean
+    outputExpanded: boolean
+  }
 >()
 
 version.textContent = IndraVersion
@@ -487,6 +492,8 @@ function renderProcessingEvents(events: ProcessingEvent[] | undefined): void {
   sorted.forEach((event) => {
     const eventKey = getProcessingEventKey(event)
     const expandedState = processingExpandState.get(eventKey) ?? {
+      promptExpanded: false,
+      seedExpanded: false,
       inputExpanded: false,
       outputExpanded: false
     }
@@ -510,31 +517,87 @@ function renderProcessingEvents(events: ProcessingEvent[] | undefined): void {
     const promptRow = document.createElement("div")
     promptRow.className = "processing-row"
 
+    const promptHeader = document.createElement("div")
+    promptHeader.className = "processing-row-header"
+
     const promptLabel = document.createElement("div")
     promptLabel.className = "processing-label"
     promptLabel.textContent = "Prompt"
 
+    const promptToggle = document.createElement("button")
+    promptToggle.className = "processing-toggle"
+    promptToggle.type = "button"
+    promptToggle.textContent = expandedState.promptExpanded ? "-" : "+"
+    promptToggle.setAttribute(
+      "aria-expanded",
+      expandedState.promptExpanded ? "true" : "false"
+    )
+
     const promptValue = document.createElement("div")
     promptValue.className = "processing-message"
+    if (!expandedState.promptExpanded) {
+      promptValue.classList.add("is-collapsed")
+    }
     promptValue.textContent = event.prompt
 
-    promptRow.append(promptLabel, promptValue)
+    promptHeader.append(promptLabel, promptToggle)
+    promptRow.append(promptHeader, promptValue)
     card.appendChild(promptRow)
+
+    promptToggle.addEventListener("pointerup", () => {
+      const isCollapsed = promptValue.classList.contains("is-collapsed")
+      promptValue.classList.toggle("is-collapsed")
+      const isExpanded = isCollapsed
+      promptToggle.textContent = isExpanded ? "-" : "+"
+      promptToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+      processingExpandState.set(eventKey, {
+        ...expandedState,
+        promptExpanded: isExpanded
+      })
+    })
 
     if (event.seed) {
       const seedRow = document.createElement("div")
       seedRow.className = "processing-row"
 
+      const seedHeader = document.createElement("div")
+      seedHeader.className = "processing-row-header"
+
       const seedLabel = document.createElement("div")
       seedLabel.className = "processing-label"
       seedLabel.textContent = "Seed"
 
+      const seedToggle = document.createElement("button")
+      seedToggle.className = "processing-toggle"
+      seedToggle.type = "button"
+      seedToggle.textContent = expandedState.seedExpanded ? "-" : "+"
+      seedToggle.setAttribute(
+        "aria-expanded",
+        expandedState.seedExpanded ? "true" : "false"
+      )
+
       const seedValue = document.createElement("div")
       seedValue.className = "processing-message"
+      if (!expandedState.seedExpanded) {
+        seedValue.classList.add("is-collapsed")
+      }
       seedValue.textContent = event.seed
 
-      seedRow.append(seedLabel, seedValue)
+      seedHeader.append(seedLabel, seedToggle)
+      seedRow.append(seedHeader, seedValue)
       card.appendChild(seedRow)
+
+      seedToggle.addEventListener("pointerup", () => {
+        const isCollapsed = seedValue.classList.contains("is-collapsed")
+        seedValue.classList.toggle("is-collapsed")
+        const isExpanded = isCollapsed
+        seedToggle.textContent = isExpanded ? "-" : "+"
+        seedToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+        processingExpandState.set(eventKey, {
+          ...expandedState,
+          seedExpanded: isExpanded
+        })
+      })
     }
 
     if (event.inputMessage) {
