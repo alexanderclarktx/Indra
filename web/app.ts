@@ -17,6 +17,7 @@ function getRequiredElement<T extends HTMLElement>(id: string): T {
 const graphContainer = getRequiredElement<HTMLDivElement>("graph")
 const status = getRequiredElement<HTMLDivElement>("status")
 const title = getRequiredElement<HTMLDivElement>("graph-title")
+const model = getRequiredElement<HTMLDivElement>("graph-model")
 const version = getRequiredElement<HTMLDivElement>("version")
 const processingList = getRequiredElement<HTMLDivElement>("processing-list")
 const processingCount = getRequiredElement<HTMLDivElement>("processing-count")
@@ -48,6 +49,16 @@ function setStatus(text: string): void {
 
 function setTitle(text: string): void {
   title.textContent = `Indra Topology: ${text}`
+}
+
+function setModel(value: string | undefined): void {
+  if (value) {
+    model.textContent = `Model: ${value}`
+    model.style.display = "block"
+    return
+  }
+  model.textContent = ""
+  model.style.display = "none"
 }
 
 function ensureTooltip(): HTMLDivElement {
@@ -692,6 +703,7 @@ function renderSnapshot(data: Graph): void {
   hideTooltip()
   ensureClickAwayHandler()
   setTitle(data.name)
+  setModel(data.model)
 
   const flatNodes = flattenNodes(data.nodes)
 

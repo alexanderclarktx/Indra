@@ -3,6 +3,7 @@ import { Graph } from "@indra/core"
 export const demo: Graph = {
   id: "demo",
   name: "demo",
+  model: "claude-haiku-4-5",
   nodes: [
     {
       id: "ingest",

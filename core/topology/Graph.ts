@@ -1,8 +1,11 @@
 import { Message, Node, NodeWorker, ProcessingEvent } from "@indra/core"
 
+export type Model = "claude-haiku-4-5" | "claude-opus-4-5" | "claude-sonnet-4"
+
 export type Graph = {
   id: string
   name: string
+  model: Model
   nodes: Node[]
   processingEvents?: ProcessingEvent[]
 }
