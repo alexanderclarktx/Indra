@@ -1,4 +1,4 @@
-__Indra__ is an Event Processing system for AI agents. 
+🔥 **Indra** is an Event Processing system for AI agents. 
 
 ## Architecture
 Graphs are defined as nodes with parent relationships and prompts.
