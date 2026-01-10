@@ -26,7 +26,10 @@ const server = Bun.serve({
 
     if (url.pathname === "/api/graph") {
       const nodes = graphWorker.graph.nodes.map(addProcessedCounts)
-      return Response.json({ ...graphWorker.graph, nodes }, { headers: corsHeaders })
+      return Response.json(
+        { ...graphWorker.graph, nodes, processingEvents: graphWorker.processingEvents },
+        { headers: corsHeaders }
+      )
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders })

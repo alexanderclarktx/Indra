@@ -14,19 +14,33 @@ export type Message = {
   text: string
 }
 
+export type ProcessingEvent = {
+  nodeId: string
+  startedAt: number
+  durationMs: number
+  prompt: string
+  seed?: string
+  inputMessage?: string
+  outputMessage?: string
+}
+
 export type NodeWorker = Node & {
   processed: number
   process: (message: Message | null) => Promise<Message | void>
 }
 
-export const NodeWorker = (node: Node): NodeWorker => {
+export const NodeWorker = (
+  node: Node,
+  onEvent?: (event: ProcessingEvent) => void
+): NodeWorker => {
 
-  const claude = ClaudeFetcher(false)
+  const claude = ClaudeFetcher(true)
 
   const worker = {
     ...node,
     processed: 0,
     process: async (message: Message | null) => {
+      const startedAt = performance.now()
       worker.processed += 1
 
       let seed = ""
@@ -36,6 +50,17 @@ export const NodeWorker = (node: Node): NodeWorker => {
       const response = await claude.fetch(
         `prompt:${prompt}; ${ message ? `message:${message.text}` : "" }; ${ seed ? `seed:${seed};` : "" }`
       )
+
+      const durationMs = Math.round(performance.now() - startedAt)
+      onEvent?.({
+        nodeId: node.id,
+        startedAt,
+        durationMs,
+        prompt,
+        seed: seed || undefined,
+        inputMessage: message?.text,
+        outputMessage: response ?? undefined
+      })
 
       console.log({ id: node.id, prompt, message, seed, response })
 

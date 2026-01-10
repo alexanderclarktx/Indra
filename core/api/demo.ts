@@ -3,6 +3,7 @@ import { Graph } from "@indra/core"
 export const demo: Graph = {
   id: "demo",
   name: "demo",
+  model: "claude-haiku-4-5",
   nodes: [
     {
       id: "ingest",
@@ -16,10 +17,10 @@ export const demo: Graph = {
           id: "tag",
           prompt: "Extract relevant tags from the summarized content. respond only with a comma separated list of tags.",
           children: [
-            {
-              id: "log",
-              prompt: "log the extracted tags to the console."
-            }
+            // {
+            //   id: "log",
+            //   prompt: "log the extracted tags to the console."
+            // }
           ]
         },
         {

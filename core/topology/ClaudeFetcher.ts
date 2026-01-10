@@ -1,8 +1,10 @@
+import { Model } from "@indra/core"
+
 export type ClaudeFetcher = {
   fetch: (content: string) => Promise<string | null>
 }
 
-export const ClaudeFetcher = (enabled: boolean): ClaudeFetcher => {
+export const ClaudeFetcher = (enabled: boolean, model: Model = "claude-haiku-4-5"): ClaudeFetcher => {
 
   const key = process.env.CLAUDE_API_KEY || ""
 
@@ -21,9 +23,7 @@ export const ClaudeFetcher = (enabled: boolean): ClaudeFetcher => {
           "anthropic-beta": "web-fetch-2025-09-10"
         },
         body: JSON.stringify({
-          // model: "claude-opus-4-5-20251101",
-          // model: "claude-sonnet-4-20250514",
-          model: "claude-haiku-4-5",
+          model,
           max_tokens: 1024,
           messages: [{
             role: "user",

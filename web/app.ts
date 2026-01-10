@@ -1,4 +1,4 @@
-import { IndraVersion, Graph, Node } from "@indra/core"
+import { IndraVersion, Graph, Node, ProcessingEvent } from "@indra/core"
 
 const svgNS = "http://www.w3.org/2000/svg"
 const labelMaxLength = 12
@@ -17,7 +17,10 @@ function getRequiredElement<T extends HTMLElement>(id: string): T {
 const graphContainer = getRequiredElement<HTMLDivElement>("graph")
 const status = getRequiredElement<HTMLDivElement>("status")
 const title = getRequiredElement<HTMLDivElement>("graph-title")
+const model = getRequiredElement<HTMLDivElement>("graph-model")
 const version = getRequiredElement<HTMLDivElement>("version")
+const processingList = getRequiredElement<HTMLDivElement>("processing-list")
+const processingCount = getRequiredElement<HTMLDivElement>("processing-count")
 
 let snapshot: Graph | null = null
 let resizeHandle = 0
@@ -27,6 +30,16 @@ let clickAwayBound = false
 let refreshInFlight = false
 const refreshIntervalMs = 2000
 let currentLayout: SvgLayout | null = null
+let processingEventsCacheKey = ""
+const processingExpandState = new Map<
+  string,
+  {
+    promptExpanded: boolean
+    seedExpanded: boolean
+    inputExpanded: boolean
+    outputExpanded: boolean
+  }
+>()
 
 version.textContent = IndraVersion
 
@@ -36,6 +49,16 @@ function setStatus(text: string): void {
 
 function setTitle(text: string): void {
   title.textContent = `Indra Topology: ${text}`
+}
+
+function setModel(value: string | undefined): void {
+  if (value) {
+    model.textContent = `Model: ${value}`
+    model.style.display = "block"
+    return
+  }
+  model.textContent = ""
+  model.style.display = "none"
 }
 
 function ensureTooltip(): HTMLDivElement {
@@ -447,12 +470,240 @@ function attachNodeInteractions(nodes: FlatNode[], layout: SvgLayout): void {
   })
 }
 
+function formatDuration(durationMs: number): string {
+  if (durationMs >= 1000) {
+    return `${(durationMs / 1000).toFixed(2)}s`
+  }
+  return `${durationMs}ms`
+}
+
+function getProcessingEventKey(event: ProcessingEvent): string {
+  return `${event.nodeId}:${event.startedAt}:${event.durationMs}`
+}
+
+function renderProcessingEvents(events: ProcessingEvent[] | undefined): void {
+  const list = events ?? []
+  const nextCacheKey = list.map(getProcessingEventKey).join("|")
+  if (nextCacheKey === processingEventsCacheKey) {
+    return
+  }
+  processingEventsCacheKey = nextCacheKey
+  processingList.innerHTML = ""
+  processingCount.textContent = `${list.length} event${list.length === 1 ? "" : "s"}`
+
+  if (list.length === 0) {
+    const empty = document.createElement("div")
+    empty.className = "processing-empty"
+    empty.textContent = "No processing events yet."
+    processingList.appendChild(empty)
+    return
+  }
+
+  const sorted = [...list].sort((a, b) => b.startedAt - a.startedAt)
+  sorted.forEach((event) => {
+    const eventKey = getProcessingEventKey(event)
+    const expandedState = processingExpandState.get(eventKey) ?? {
+      promptExpanded: false,
+      seedExpanded: false,
+      inputExpanded: false,
+      outputExpanded: false
+    }
+    const card = document.createElement("article")
+    card.className = "processing-card"
+
+    const header = document.createElement("div")
+    header.className = "processing-card-header"
+
+    const node = document.createElement("div")
+    node.className = "processing-node"
+    node.textContent = event.nodeId
+
+    const time = document.createElement("div")
+    time.className = "processing-time"
+    time.textContent = formatDuration(event.durationMs)
+
+    header.append(node, time)
+    card.appendChild(header)
+
+    const promptRow = document.createElement("div")
+    promptRow.className = "processing-row"
+
+    const promptHeader = document.createElement("div")
+    promptHeader.className = "processing-row-header"
+
+    const promptLabel = document.createElement("div")
+    promptLabel.className = "processing-label"
+    promptLabel.textContent = "Prompt"
+
+    const promptToggle = document.createElement("button")
+    promptToggle.className = "processing-toggle"
+    promptToggle.type = "button"
+    promptToggle.textContent = expandedState.promptExpanded ? "-" : "+"
+    promptToggle.setAttribute(
+      "aria-expanded",
+      expandedState.promptExpanded ? "true" : "false"
+    )
+
+    const promptValue = document.createElement("div")
+    promptValue.className = "processing-message"
+    if (!expandedState.promptExpanded) {
+      promptValue.classList.add("is-collapsed")
+    }
+    promptValue.textContent = event.prompt
+
+    promptHeader.append(promptLabel, promptToggle)
+    promptRow.append(promptHeader, promptValue)
+    card.appendChild(promptRow)
+
+    promptToggle.addEventListener("pointerup", () => {
+      const isCollapsed = promptValue.classList.contains("is-collapsed")
+      promptValue.classList.toggle("is-collapsed")
+      const isExpanded = isCollapsed
+      promptToggle.textContent = isExpanded ? "-" : "+"
+      promptToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+      processingExpandState.set(eventKey, {
+        ...expandedState,
+        promptExpanded: isExpanded
+      })
+    })
+
+    if (event.seed) {
+      const seedRow = document.createElement("div")
+      seedRow.className = "processing-row"
+
+      const seedHeader = document.createElement("div")
+      seedHeader.className = "processing-row-header"
+
+      const seedLabel = document.createElement("div")
+      seedLabel.className = "processing-label"
+      seedLabel.textContent = "Seed"
+
+      const seedToggle = document.createElement("button")
+      seedToggle.className = "processing-toggle"
+      seedToggle.type = "button"
+      seedToggle.textContent = expandedState.seedExpanded ? "-" : "+"
+      seedToggle.setAttribute(
+        "aria-expanded",
+        expandedState.seedExpanded ? "true" : "false"
+      )
+
+      const seedValue = document.createElement("div")
+      seedValue.className = "processing-message"
+      if (!expandedState.seedExpanded) {
+        seedValue.classList.add("is-collapsed")
+      }
+      seedValue.textContent = event.seed
+
+      seedHeader.append(seedLabel, seedToggle)
+      seedRow.append(seedHeader, seedValue)
+      card.appendChild(seedRow)
+
+      seedToggle.addEventListener("pointerup", () => {
+        const isCollapsed = seedValue.classList.contains("is-collapsed")
+        seedValue.classList.toggle("is-collapsed")
+        const isExpanded = isCollapsed
+        seedToggle.textContent = isExpanded ? "-" : "+"
+        seedToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+        processingExpandState.set(eventKey, {
+          ...expandedState,
+          seedExpanded: isExpanded
+        })
+      })
+    }
+
+    if (event.inputMessage) {
+      const input = document.createElement("div")
+      input.className = "processing-row"
+
+      const header = document.createElement("div")
+      header.className = "processing-row-header"
+
+      const label = document.createElement("div")
+      label.className = "processing-label"
+      label.textContent = "Input"
+
+      const toggle = document.createElement("button")
+      toggle.className = "processing-toggle"
+      toggle.type = "button"
+      toggle.textContent = expandedState.inputExpanded ? "-" : "+"
+      toggle.setAttribute("aria-expanded", expandedState.inputExpanded ? "true" : "false")
+
+      const message = document.createElement("div")
+      message.className = "processing-message"
+      if (!expandedState.inputExpanded) {
+        message.classList.add("is-collapsed")
+      }
+      message.textContent = event.inputMessage
+
+      header.append(label, toggle)
+      input.append(header, message)
+      card.appendChild(input)
+
+      toggle.addEventListener("pointerup", () => {
+        const isCollapsed = message.classList.contains("is-collapsed")
+        message.classList.toggle("is-collapsed")
+        const isExpanded = isCollapsed
+        toggle.textContent = isExpanded ? "-" : "+"
+        toggle.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+        processingExpandState.set(eventKey, {
+          ...expandedState,
+          inputExpanded: isExpanded
+        })
+      })
+    }
+
+    if (event.outputMessage) {
+      const output = document.createElement("div")
+      output.className = "processing-row"
+
+      const header = document.createElement("div")
+      header.className = "processing-row-header"
+
+      const label = document.createElement("div")
+      label.className = "processing-label"
+      label.textContent = "Output"
+
+      const toggle = document.createElement("button")
+      toggle.className = "processing-toggle"
+      toggle.type = "button"
+      toggle.textContent = expandedState.outputExpanded ? "-" : "+"
+      toggle.setAttribute("aria-expanded", expandedState.outputExpanded ? "true" : "false")
+
+      const message = document.createElement("div")
+      message.className = "processing-message"
+      if (!expandedState.outputExpanded) {
+        message.classList.add("is-collapsed")
+      }
+      message.textContent = event.outputMessage
+
+      header.append(label, toggle)
+      output.append(header, message)
+      card.appendChild(output)
+
+      toggle.addEventListener("pointerup", () => {
+        const isCollapsed = message.classList.contains("is-collapsed")
+        message.classList.toggle("is-collapsed")
+        const isExpanded = isCollapsed
+        toggle.textContent = isExpanded ? "-" : "+"
+        toggle.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+        processingExpandState.set(eventKey, {
+          ...expandedState,
+          outputExpanded: isExpanded
+        })
+      })
+    }
+
+    processingList.appendChild(card)
+  })
+}
+
 function renderSnapshot(data: Graph): void {
   snapshot = data
   graphContainer.innerHTML = ""
   hideTooltip()
   ensureClickAwayHandler()
   setTitle(data.name)
+  setModel(data.model)
 
   const flatNodes = flattenNodes(data.nodes)
 
@@ -522,6 +773,7 @@ async function loadSnapshot(): Promise<void> {
     if (!updateNodeCounts(data)) {
       renderSnapshot(data)
     }
+    renderProcessingEvents(data.processingEvents)
   } finally {
     refreshInFlight = false
   }

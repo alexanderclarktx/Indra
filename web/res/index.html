@@ -17,9 +17,19 @@
     <main class="stage">
       <div class="hud">
         <div class="title" id="graph-title"></div>
+        <div class="model" id="graph-model"></div>
         <div class="status" id="status"></div>
       </div>
-      <div class="graph" id="graph"></div>
+      <div class="layout">
+        <div class="graph" id="graph"></div>
+        <aside class="sidebar" id="processing">
+          <div class="sidebar-header">
+            <div class="sidebar-title">Events</div>
+            <div class="sidebar-subtitle" id="processing-count"></div>
+          </div>
+          <div class="processing-list" id="processing-list"></div>
+        </aside>
+      </div>
       <div class="version" id="version"></div>
     </main>
 

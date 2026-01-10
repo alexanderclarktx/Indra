@@ -40,6 +40,14 @@ body::before {
   min-height: 100vh;
 }
 
+.layout {
+  position: relative;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 0;
+}
+
 .hud {
   position: absolute;
   top: 24px;
@@ -61,6 +69,14 @@ body::before {
   color: rgba(255, 255, 255, 0.85);
 }
 
+.model {
+  font-family: "Space Mono", monospace;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
 .status {
   font-family: "Space Mono", monospace;
   letter-spacing: 0.08em;
@@ -68,8 +84,10 @@ body::before {
 }
 
 .graph {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .version {
@@ -82,6 +100,153 @@ body::before {
   color: rgba(255, 255, 255, 0.45);
   text-transform: uppercase;
   pointer-events: none;
+}
+
+.sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 20px 20px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(150deg, rgba(14, 22, 28, 0.85), rgba(6, 6, 6, 0.95) 60%),
+    radial-gradient(circle at top, rgba(74, 187, 255, 0.12), transparent 55%);
+  box-shadow: inset 12px 0 28px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.sidebar-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-title {
+  font-size: 0.95rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.sidebar-subtitle {
+  font-family: "Space Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+}
+
+.processing-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.processing-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.processing-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+.processing-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 7, 9, 0.85);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  display: grid;
+  gap: 10px;
+}
+
+.processing-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  font-family: "Space Mono", monospace;
+}
+
+.processing-node {
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.processing-time {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(106, 215, 255, 0.75);
+}
+
+.processing-row {
+  display: grid;
+  gap: 6px;
+  font-family: "Space Mono", monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.processing-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.processing-label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.processing-message {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.processing-message.is-collapsed {
+  display: none;
+}
+
+.processing-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-family: "Space Mono", monospace;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.processing-toggle:hover {
+  border-color: rgba(106, 215, 255, 0.6);
+  color: rgba(106, 215, 255, 0.9);
+}
+
+.processing-empty {
+  font-family: "Space Mono", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
 }
 
 .graph svg {
@@ -219,6 +384,19 @@ body::before {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 320px;
+  }
+
+  .sidebar {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 12px 24px rgba(0, 0, 0, 0.35);
   }
 }
 

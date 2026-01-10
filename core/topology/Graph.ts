@@ -1,24 +1,32 @@
-import { Message, Node, NodeWorker } from "@indra/core"
+import { Message, Node, NodeWorker, ProcessingEvent } from "@indra/core"
+
+export type Model = "claude-haiku-4-5" | "claude-opus-4-5" | "claude-sonnet-4"
 
 export type Graph = {
   id: string
   name: string
+  model: Model
   nodes: Node[]
+  processingEvents?: ProcessingEvent[]
 }
 
 export type GraphWorker = {
   graph: Graph
   workers: Record<string, NodeWorker>
+  processingEvents: ProcessingEvent[]
 }
 
 export const GraphWorker = (graph: Graph): GraphWorker => {
 
   const workers: Record<string, NodeWorker> = {}
   const messages: Message[] = []
+  const processingEvents: ProcessingEvent[] = []
   const childrenByParent = new Map<string, string[]>()
 
   const registerNode = (node: Node, parentId: string | null) => {
-    workers[node.id] = NodeWorker(node)
+    workers[node.id] = NodeWorker(node, (event) => {
+      processingEvents.push(event)
+    })
 
     if (parentId) {
       const list = childrenByParent.get(parentId) ?? []
@@ -70,6 +78,7 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
 
   return {
     graph,
-    workers
+    workers,
+    processingEvents
   }
 }
