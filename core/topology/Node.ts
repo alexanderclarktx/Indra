@@ -2,8 +2,8 @@ import { ClaudeFetcher } from "@indra/core"
 
 export type Node = {
   id: string
-  parentId: string | null
   prompt: string
+  children?: Node[]
   seed?: () => Promise<string>
   processed?: number
 }

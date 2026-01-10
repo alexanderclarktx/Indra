@@ -15,37 +15,51 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
 
   const workers: Record<string, NodeWorker> = {}
   const messages: Message[] = []
+  const childrenByParent = new Map<string, string[]>()
 
-  for (const node of graph.nodes) {
+  const registerNode = (node: Node, parentId: string | null) => {
     workers[node.id] = NodeWorker(node)
+    if (parentId) {
+      const list = childrenByParent.get(parentId) ?? []
+      list.push(node.id)
+      childrenByParent.set(parentId, list)
+    }
+    node.children?.forEach((child) => {
+      registerNode(child, node.id)
+    })
   }
+
+  graph.nodes.forEach((node) => {
+    registerNode(node, null)
+  })
 
   let timer = 0
 
   setInterval(() => {
 
     // root nodes
-    for (const worker of Object.values(workers)) {
-      if (!worker.parentId) {
+    for (const root of graph.nodes) {
+      const worker = workers[root.id]
+      if (!worker) continue
 
-        // debug mode
-        if (timer++ > 0) continue
+      // debug mode
+      if (timer++ > 0) continue
 
-        worker.process(null).then((res => {
-          if (res) messages.push(res)
-        }))
-      }
+      worker.process(null).then((res => {
+        if (res) messages.push(res)
+      }))
     }
 
     // child nodes
     for (const message of messages) {
       if (message.read) continue
-      for (const worker of Object.values(workers)) {
-        if (worker.parentId === message.from) {
-          worker.process(message).then((res => {
-            if (res) messages.push(res)
-          }))
-        }
+      const childIds = childrenByParent.get(message.from) ?? []
+      for (const childId of childIds) {
+        const worker = workers[childId]
+        if (!worker) continue
+        worker.process(message).then((res => {
+          if (res) messages.push(res)
+        }))
       }
       message.read = true
     }

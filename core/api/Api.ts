@@ -1,7 +1,13 @@
-import { GraphWorker } from "@indra/core"
+import { GraphWorker, Node } from "@indra/core"
 import { demo } from "./demo"
 
 const graphWorker = GraphWorker(demo)
+
+const addProcessedCounts = (node: Node): Node => ({
+  ...node,
+  processed: graphWorker.workers[node.id]?.processed ?? 0,
+  children: node.children?.map(addProcessedCounts)
+})
 
 const server = Bun.serve({
   port: 5001,
@@ -19,10 +25,7 @@ const server = Bun.serve({
     }
 
     if (url.pathname === "/api/graph") {
-      const nodes = graphWorker.graph.nodes.map((node) => ({
-        ...node,
-        processed: graphWorker.workers[node.id]?.processed ?? 0
-      }))
+      const nodes = graphWorker.graph.nodes.map(addProcessedCounts)
       return Response.json({ ...graphWorker.graph, nodes }, { headers: corsHeaders })
     }
 
