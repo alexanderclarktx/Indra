@@ -17,20 +17,14 @@ export const demo: Graph = {
           prompt: "Extract relevant tags from the summarized content. respond only with a comma separated list of tags.",
           children: [
             {
-              id: "log2",
+              id: "log",
               prompt: "log the extracted tags to the console."
             }
           ]
         },
         {
           id: "suggestion",
-          prompt: "suggest three related topics that might interest the reader. respond only with a comma separated list of topics.",
-          children: [
-            {
-              id: "log",
-              prompt: "log the extracted tags to the console."
-            }
-          ]
+          prompt: "suggest three related topics that might interest the reader. respond only with a comma separated list of topics."
         }
       ]
     }

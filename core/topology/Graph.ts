@@ -19,19 +19,21 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
 
   const registerNode = (node: Node, parentId: string | null) => {
     workers[node.id] = NodeWorker(node)
+
     if (parentId) {
       const list = childrenByParent.get(parentId) ?? []
       list.push(node.id)
       childrenByParent.set(parentId, list)
     }
-    node.children?.forEach((child) => {
+
+    for (const child of node.children ?? []) {
       registerNode(child, node.id)
-    })
+    }
   }
 
-  graph.nodes.forEach((node) => {
+  for (const node of graph.nodes) {
     registerNode(node, null)
-  })
+  }
 
   let timer = 0
 
