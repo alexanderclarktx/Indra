@@ -1,2 +1,1 @@
-export const IndraVersion: `v${number}.${number}.${number}` = `v0.1.4`
-
+export const IndraVersion: `v${number}.${number}.${number}` = `v0.1.5`
