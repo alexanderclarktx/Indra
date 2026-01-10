@@ -9,45 +9,63 @@ export type Graph = {
 export type GraphWorker = {
   graph: Graph
   workers: Record<string, NodeWorker>
-  // process: (graph: Graph) => void
 }
 
 export const GraphWorker = (graph: Graph): GraphWorker => {
 
   const workers: Record<string, NodeWorker> = {}
   const messages: Message[] = []
+  const childrenByParent = new Map<string, string[]>()
+
+  const registerNode = (node: Node, parentId: string | null) => {
+    workers[node.id] = NodeWorker(node)
+
+    if (parentId) {
+      const list = childrenByParent.get(parentId) ?? []
+      list.push(node.id)
+      childrenByParent.set(parentId, list)
+    }
+
+    for (const child of node.children ?? []) {
+      registerNode(child, node.id)
+    }
+  }
 
   for (const node of graph.nodes) {
-    workers[node.id] = NodeWorker(node)
+    registerNode(node, null)
   }
 
   let timer = 0
 
   setInterval(() => {
-    for (const worker of Object.values(workers)) {
-      if (!worker.parentId) {
-        if (timer++ > 0) continue
-        // if (timer++ % 100 !== 0) continue
-        // console.log(`root: ${worker.id}`)
-        const result = worker.process(null)
-        result.then((res => {
+
+    // root nodes
+    for (const root of graph.nodes) {
+      const worker = workers[root.id]
+      if (!worker) continue
+
+      // debug mode
+      if (timer++ > 0) continue
+
+      worker.process(null).then((res => {
+        if (res) messages.push(res)
+      }))
+    }
+
+    // child nodes
+    for (const message of messages) {
+      if (message.read) continue
+      const childIds = childrenByParent.get(message.from) ?? []
+      for (const childId of childIds) {
+        const worker = workers[childId]
+        if (!worker) continue
+        worker.process(message).then((res => {
           if (res) messages.push(res)
         }))
       }
-    }
-    for (const message of messages) {
-      if (message.read) continue
-      for (const worker of Object.values(workers)) {
-        if (worker.parentId === message.from) {
-          // console.log(`child: ${worker.id}`)
-          const result = worker.process(message)
-          result.then((res => {
-            if (res) messages.push(res)
-          }))
-        }
-      }
       message.read = true
     }
+
   }, 5)
 
   return {

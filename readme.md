@@ -17,8 +17,8 @@ type Graph = {
 // each node can define its own prompt
 type Node = {
   id: string
-  parentId: string | null
   prompt: string
+  children?: Node[]
   seed?: () => Promise<string>
 }
 ```

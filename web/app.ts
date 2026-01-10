@@ -75,19 +75,46 @@ type NodePosition = {
   depth: number
 }
 
+type FlatNode = Omit<Node, "children"> & {
+  parentId: string | null
+}
+
+function flattenNodes(roots: Node[]): FlatNode[] {
+  const result: FlatNode[] = []
+  const queue: Array<{ node: Node; parentId: string | null }> = roots.map((node) => ({
+    node,
+    parentId: null,
+  }))
+
+  while (queue.length > 0) {
+    const current = queue.shift()
+    if (!current) {
+      continue
+    }
+    const { node, parentId } = current
+    const { children, ...rest } = node
+    result.push({ ...rest, parentId })
+    children?.forEach((child) => {
+      queue.push({ node: child, parentId: node.id })
+    })
+  }
+
+  return result
+}
+
 type LayoutResult = {
   positions: Map<string, NodePosition>
   radius: number
 }
 
 function buildLayout(
-  nodes: Node[],
+  nodes: FlatNode[],
   width: number,
   height: number,
   radius: number
 ): LayoutResult {
   const nodeById = new Map(nodes.map((node) => [node.id, node]))
-  const childrenByParent = new Map<string, Node[]>()
+  const childrenByParent = new Map<string, FlatNode[]>()
 
   nodes.forEach((node) => {
     if (!node.parentId || !nodeById.has(node.parentId)) {
@@ -100,7 +127,7 @@ function buildLayout(
 
   const roots = nodes.filter((node) => !node.parentId || !nodeById.has(node.parentId))
   const depthMap = new Map<string, number>()
-  const queue: Array<{ node: Node; depth: number }> = roots.map((node) => ({
+  const queue: Array<{ node: FlatNode; depth: number }> = roots.map((node) => ({
     node,
     depth: 0,
   }))
@@ -123,7 +150,7 @@ function buildLayout(
     }
   })
 
-  const levels = new Map<number, Node[]>()
+  const levels = new Map<number, FlatNode[]>()
   nodes.forEach((node) => {
     const depth = depthMap.get(node.id) ?? 0
     const list = levels.get(depth) ?? []
@@ -140,7 +167,7 @@ function buildLayout(
 
   const positions = new Map<string, NodePosition>()
 
-  const placeLevel = (nodesAtLevel: Node[], depth: number, x: number) => {
+  const placeLevel = (nodesAtLevel: FlatNode[], depth: number, x: number) => {
     const count = nodesAtLevel.length
     if (count === 0) {
       return
@@ -212,7 +239,7 @@ function measureMaxLabelWidth(labels: string[]): number {
   return maxWidth
 }
 
-function getRequiredRadius(nodes: Node[]): number {
+function getRequiredRadius(nodes: FlatNode[]): number {
   const labels = nodes.map((node) => getNodeLabel(node.id))
   const maxWidth = measureMaxLabelWidth(labels)
   if (maxWidth <= 0) {
@@ -221,7 +248,7 @@ function getRequiredRadius(nodes: Node[]): number {
   return maxWidth / 2 + labelPadding
 }
 
-function getLayoutRadius(nodes: Node[], width: number, height: number): number {
+function getLayoutRadius(nodes: FlatNode[], width: number, height: number): number {
   const baseRadius = Math.max(
     minRadius,
     Math.min(maxRadius, Math.min(width, height) * 0.05)
@@ -237,19 +264,19 @@ type SvgLayout = LayoutResult & {
   nodeCounts: Map<string, SVGTextElement>
 }
 
-function buildSvg(data: Graph, width: number, height: number): SvgLayout {
+function buildSvg(flatNodes: FlatNode[], width: number, height: number): SvgLayout {
   const svg = document.createElementNS(svgNS, "svg")
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`)
   svg.setAttribute("width", `${width}`)
   svg.setAttribute("height", `${height}`)
 
-  const radius = getLayoutRadius(data.nodes, width, height)
-  const { positions } = buildLayout(data.nodes, width, height, radius)
+  const radius = getLayoutRadius(flatNodes, width, height)
+  const { positions } = buildLayout(flatNodes, width, height, radius)
   const edges = document.createElementNS(svgNS, "g")
   const nodes = document.createElementNS(svgNS, "g")
   const nodeCounts = new Map<string, SVGTextElement>()
 
-  const edgesList = data.nodes
+  const edgesList = flatNodes
     .map((node) => {
       if (!node.parentId) {
         return null
@@ -288,7 +315,7 @@ function buildSvg(data: Graph, width: number, height: number): SvgLayout {
     edges.appendChild(line)
   })
 
-  data.nodes.forEach((node, index) => {
+  flatNodes.forEach((node, index) => {
     const position = positions.get(node.id)
     if (!position) {
       return
@@ -331,7 +358,7 @@ function buildSvg(data: Graph, width: number, height: number): SvgLayout {
   return { svg, positions, radius, width, height, nodeCounts }
 }
 
-function setTooltipContent(tooltipEl: HTMLDivElement, node: Node): void {
+function setTooltipContent(tooltipEl: HTMLDivElement, node: FlatNode): void {
   tooltipEl.innerHTML = ""
   const rows: Array<{ label: string; value: string }> = [
     { label: "name", value: node.id },
@@ -391,7 +418,7 @@ function positionTooltip(position: NodePosition, layout: SvgLayout): void {
   })
 }
 
-function attachNodeInteractions(nodes: Node[], layout: SvgLayout): void {
+function attachNodeInteractions(nodes: FlatNode[], layout: SvgLayout): void {
   const tooltipEl = ensureTooltip()
   const nodesById = new Map(nodes.map((node) => [node.id, node]))
   const groups = layout.svg.querySelectorAll<SVGGElement>(".node")
@@ -427,7 +454,9 @@ function renderSnapshot(data: Graph): void {
   ensureClickAwayHandler()
   setTitle(data.name)
 
-  if (data.nodes.length === 0) {
+  const flatNodes = flattenNodes(data.nodes)
+
+  if (flatNodes.length === 0) {
     const placeholder = document.createElement("div")
     placeholder.className = "placeholder"
     placeholder.textContent = "No nodes in topology."
@@ -440,20 +469,21 @@ function renderSnapshot(data: Graph): void {
   const rect = graphContainer.getBoundingClientRect()
   const width = Math.max(320, Math.floor(rect.width))
   const height = Math.max(320, Math.floor(rect.height))
-  const layout = buildSvg(data, width, height)
+  const layout = buildSvg(flatNodes, width, height)
   graphContainer.appendChild(layout.svg)
-  attachNodeInteractions(data.nodes, layout)
+  attachNodeInteractions(flatNodes, layout)
   currentLayout = layout
 }
 
-function canUpdateCounts(current: Graph, next: Graph): boolean {
-  if (current.nodes.length !== next.nodes.length) {
+function canUpdateCounts(current: Graph, nextFlatNodes: FlatNode[]): boolean {
+  const currentFlatNodes = flattenNodes(current.nodes)
+  if (currentFlatNodes.length !== nextFlatNodes.length) {
     return false
   }
-  const currentById = new Map(current.nodes.map((node) => [node.id, node]))
-  for (const node of next.nodes) {
-    const existing = currentById.get(node.id)
-    if (!existing || existing.parentId !== node.parentId) {
+  const currentById = new Map(currentFlatNodes.map((node) => [node.id, node.parentId]))
+  for (const node of nextFlatNodes) {
+    const existingParentId = currentById.get(node.id)
+    if (existingParentId === undefined || existingParentId !== node.parentId) {
       return false
     }
   }
@@ -464,10 +494,11 @@ function updateNodeCounts(data: Graph): boolean {
   if (!snapshot || !currentLayout) {
     return false
   }
-  if (!canUpdateCounts(snapshot, data)) {
+  const nextFlatNodes = flattenNodes(data.nodes)
+  if (!canUpdateCounts(snapshot, nextFlatNodes)) {
     return false
   }
-  data.nodes.forEach((node) => {
+  nextFlatNodes.forEach((node) => {
     const countEl = currentLayout?.nodeCounts.get(node.id)
     if (countEl) {
       countEl.textContent = String(node.processed ?? 0)
