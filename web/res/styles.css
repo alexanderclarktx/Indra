@@ -188,6 +188,13 @@ body::before {
   color: rgba(255, 255, 255, 0.78);
 }
 
+.processing-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .processing-label {
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -198,6 +205,29 @@ body::before {
 .processing-message {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.processing-message.is-collapsed {
+  display: none;
+}
+
+.processing-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-family: "Space Mono", monospace;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.processing-toggle:hover {
+  border-color: rgba(106, 215, 255, 0.6);
+  color: rgba(106, 215, 255, 0.9);
 }
 
 .processing-empty {

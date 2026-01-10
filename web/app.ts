@@ -29,6 +29,11 @@ let clickAwayBound = false
 let refreshInFlight = false
 const refreshIntervalMs = 2000
 let currentLayout: SvgLayout | null = null
+let processingEventsCacheKey = ""
+const processingExpandState = new Map<
+  string,
+  { inputExpanded: boolean; outputExpanded: boolean }
+>()
 
 version.textContent = IndraVersion
 
@@ -456,8 +461,17 @@ function formatDuration(durationMs: number): string {
   return `${durationMs}ms`
 }
 
+function getProcessingEventKey(event: ProcessingEvent): string {
+  return `${event.nodeId}:${event.startedAt}:${event.durationMs}`
+}
+
 function renderProcessingEvents(events: ProcessingEvent[] | undefined): void {
   const list = events ?? []
+  const nextCacheKey = list.map(getProcessingEventKey).join("|")
+  if (nextCacheKey === processingEventsCacheKey) {
+    return
+  }
+  processingEventsCacheKey = nextCacheKey
   processingList.innerHTML = ""
   processingCount.textContent = `${list.length} event${list.length === 1 ? "" : "s"}`
 
@@ -471,6 +485,11 @@ function renderProcessingEvents(events: ProcessingEvent[] | undefined): void {
 
   const sorted = [...list].sort((a, b) => b.startedAt - a.startedAt)
   sorted.forEach((event) => {
+    const eventKey = getProcessingEventKey(event)
+    const expandedState = processingExpandState.get(eventKey) ?? {
+      inputExpanded: false,
+      outputExpanded: false
+    }
     const card = document.createElement("article")
     card.className = "processing-card"
 
@@ -522,32 +541,82 @@ function renderProcessingEvents(events: ProcessingEvent[] | undefined): void {
       const input = document.createElement("div")
       input.className = "processing-row"
 
+      const header = document.createElement("div")
+      header.className = "processing-row-header"
+
       const label = document.createElement("div")
       label.className = "processing-label"
       label.textContent = "Input"
 
+      const toggle = document.createElement("button")
+      toggle.className = "processing-toggle"
+      toggle.type = "button"
+      toggle.textContent = expandedState.inputExpanded ? "-" : "+"
+      toggle.setAttribute("aria-expanded", expandedState.inputExpanded ? "true" : "false")
+
       const message = document.createElement("div")
       message.className = "processing-message"
+      if (!expandedState.inputExpanded) {
+        message.classList.add("is-collapsed")
+      }
       message.textContent = event.inputMessage
 
-      input.append(label, message)
+      header.append(label, toggle)
+      input.append(header, message)
       card.appendChild(input)
+
+      toggle.addEventListener("pointerup", () => {
+        const isCollapsed = message.classList.contains("is-collapsed")
+        message.classList.toggle("is-collapsed")
+        const isExpanded = isCollapsed
+        toggle.textContent = isExpanded ? "-" : "+"
+        toggle.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+        processingExpandState.set(eventKey, {
+          ...expandedState,
+          inputExpanded: isExpanded
+        })
+      })
     }
 
     if (event.outputMessage) {
       const output = document.createElement("div")
       output.className = "processing-row"
 
+      const header = document.createElement("div")
+      header.className = "processing-row-header"
+
       const label = document.createElement("div")
       label.className = "processing-label"
       label.textContent = "Output"
 
+      const toggle = document.createElement("button")
+      toggle.className = "processing-toggle"
+      toggle.type = "button"
+      toggle.textContent = expandedState.outputExpanded ? "-" : "+"
+      toggle.setAttribute("aria-expanded", expandedState.outputExpanded ? "true" : "false")
+
       const message = document.createElement("div")
       message.className = "processing-message"
+      if (!expandedState.outputExpanded) {
+        message.classList.add("is-collapsed")
+      }
       message.textContent = event.outputMessage
 
-      output.append(label, message)
+      header.append(label, toggle)
+      output.append(header, message)
       card.appendChild(output)
+
+      toggle.addEventListener("pointerup", () => {
+        const isCollapsed = message.classList.contains("is-collapsed")
+        message.classList.toggle("is-collapsed")
+        const isExpanded = isCollapsed
+        toggle.textContent = isExpanded ? "-" : "+"
+        toggle.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+        processingExpandState.set(eventKey, {
+          ...expandedState,
+          outputExpanded: isExpanded
+        })
+      })
     }
 
     processingList.appendChild(card)
