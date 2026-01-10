@@ -488,6 +488,36 @@ function renderProcessingEvents(events: ProcessingEvent[] | undefined): void {
     header.append(node, time)
     card.appendChild(header)
 
+    const promptRow = document.createElement("div")
+    promptRow.className = "processing-row"
+
+    const promptLabel = document.createElement("div")
+    promptLabel.className = "processing-label"
+    promptLabel.textContent = "Prompt"
+
+    const promptValue = document.createElement("div")
+    promptValue.className = "processing-message"
+    promptValue.textContent = event.prompt
+
+    promptRow.append(promptLabel, promptValue)
+    card.appendChild(promptRow)
+
+    if (event.seed) {
+      const seedRow = document.createElement("div")
+      seedRow.className = "processing-row"
+
+      const seedLabel = document.createElement("div")
+      seedLabel.className = "processing-label"
+      seedLabel.textContent = "Seed"
+
+      const seedValue = document.createElement("div")
+      seedValue.className = "processing-message"
+      seedValue.textContent = event.seed
+
+      seedRow.append(seedLabel, seedValue)
+      card.appendChild(seedRow)
+    }
+
     if (event.inputMessage) {
       const input = document.createElement("div")
       input.className = "processing-row"

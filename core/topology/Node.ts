@@ -18,6 +18,8 @@ export type ProcessingEvent = {
   nodeId: string
   startedAt: number
   durationMs: number
+  prompt: string
+  seed?: string
   inputMessage?: string
   outputMessage?: string
 }
@@ -32,7 +34,7 @@ export const NodeWorker = (
   onEvent?: (event: ProcessingEvent) => void
 ): NodeWorker => {
 
-  const claude = ClaudeFetcher(false)
+  const claude = ClaudeFetcher(true)
 
   const worker = {
     ...node,
@@ -54,6 +56,8 @@ export const NodeWorker = (
         nodeId: node.id,
         startedAt,
         durationMs,
+        prompt,
+        seed: seed || undefined,
         inputMessage: message?.text,
         outputMessage: response ?? undefined
       })

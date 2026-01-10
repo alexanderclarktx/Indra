@@ -16,10 +16,10 @@ export const demo: Graph = {
           id: "tag",
           prompt: "Extract relevant tags from the summarized content. respond only with a comma separated list of tags.",
           children: [
-            {
-              id: "log",
-              prompt: "log the extracted tags to the console."
-            }
+            // {
+            //   id: "log",
+            //   prompt: "log the extracted tags to the console."
+            // }
           ]
         },
         {
