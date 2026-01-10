@@ -1,4 +1,4 @@
-import { IndraVersion, Graph, Node } from "@indra/core"
+import { IndraVersion, Graph, Node, ProcessingEvent } from "@indra/core"
 
 const svgNS = "http://www.w3.org/2000/svg"
 const labelMaxLength = 12
@@ -18,6 +18,8 @@ const graphContainer = getRequiredElement<HTMLDivElement>("graph")
 const status = getRequiredElement<HTMLDivElement>("status")
 const title = getRequiredElement<HTMLDivElement>("graph-title")
 const version = getRequiredElement<HTMLDivElement>("version")
+const processingList = getRequiredElement<HTMLDivElement>("processing-list")
+const processingCount = getRequiredElement<HTMLDivElement>("processing-count")
 
 let snapshot: Graph | null = null
 let resizeHandle = 0
@@ -447,6 +449,81 @@ function attachNodeInteractions(nodes: FlatNode[], layout: SvgLayout): void {
   })
 }
 
+function formatDuration(durationMs: number): string {
+  if (durationMs >= 1000) {
+    return `${(durationMs / 1000).toFixed(2)}s`
+  }
+  return `${durationMs}ms`
+}
+
+function renderProcessingEvents(events: ProcessingEvent[] | undefined): void {
+  const list = events ?? []
+  processingList.innerHTML = ""
+  processingCount.textContent = `${list.length} event${list.length === 1 ? "" : "s"}`
+
+  if (list.length === 0) {
+    const empty = document.createElement("div")
+    empty.className = "processing-empty"
+    empty.textContent = "No processing events yet."
+    processingList.appendChild(empty)
+    return
+  }
+
+  const sorted = [...list].sort((a, b) => b.startedAt - a.startedAt)
+  sorted.forEach((event) => {
+    const card = document.createElement("article")
+    card.className = "processing-card"
+
+    const header = document.createElement("div")
+    header.className = "processing-card-header"
+
+    const node = document.createElement("div")
+    node.className = "processing-node"
+    node.textContent = event.nodeId
+
+    const time = document.createElement("div")
+    time.className = "processing-time"
+    time.textContent = formatDuration(event.durationMs)
+
+    header.append(node, time)
+    card.appendChild(header)
+
+    if (event.inputMessage) {
+      const input = document.createElement("div")
+      input.className = "processing-row"
+
+      const label = document.createElement("div")
+      label.className = "processing-label"
+      label.textContent = "Input"
+
+      const message = document.createElement("div")
+      message.className = "processing-message"
+      message.textContent = event.inputMessage
+
+      input.append(label, message)
+      card.appendChild(input)
+    }
+
+    if (event.outputMessage) {
+      const output = document.createElement("div")
+      output.className = "processing-row"
+
+      const label = document.createElement("div")
+      label.className = "processing-label"
+      label.textContent = "Output"
+
+      const message = document.createElement("div")
+      message.className = "processing-message"
+      message.textContent = event.outputMessage
+
+      output.append(label, message)
+      card.appendChild(output)
+    }
+
+    processingList.appendChild(card)
+  })
+}
+
 function renderSnapshot(data: Graph): void {
   snapshot = data
   graphContainer.innerHTML = ""
@@ -522,6 +599,7 @@ async function loadSnapshot(): Promise<void> {
     if (!updateNodeCounts(data)) {
       renderSnapshot(data)
     }
+    renderProcessingEvents(data.processingEvents)
   } finally {
     refreshInFlight = false
   }
