@@ -1,7 +1,7 @@
 🔥 **Indra** is an Event Processing system for AI agents. 
 
 <p align="center">
-  <img style="width:80%" src="screenshot.png"/>
+  <img style="width:90%" src="screenshot.png"/>
 </p>
 
 ## Architecture
