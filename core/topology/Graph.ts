@@ -9,7 +9,6 @@ export type Graph = {
 export type GraphWorker = {
   graph: Graph
   workers: Record<string, NodeWorker>
-  // process: (graph: Graph) => void
 }
 
 export const GraphWorker = (graph: Graph): GraphWorker => {
@@ -24,30 +23,33 @@ export const GraphWorker = (graph: Graph): GraphWorker => {
   let timer = 0
 
   setInterval(() => {
+
+    // root nodes
     for (const worker of Object.values(workers)) {
       if (!worker.parentId) {
+
+        // debug mode
         if (timer++ > 0) continue
-        // if (timer++ % 100 !== 0) continue
-        // console.log(`root: ${worker.id}`)
-        const result = worker.process(null)
-        result.then((res => {
+
+        worker.process(null).then((res => {
           if (res) messages.push(res)
         }))
       }
     }
+
+    // child nodes
     for (const message of messages) {
       if (message.read) continue
       for (const worker of Object.values(workers)) {
         if (worker.parentId === message.from) {
-          // console.log(`child: ${worker.id}`)
-          const result = worker.process(message)
-          result.then((res => {
+          worker.process(message).then((res => {
             if (res) messages.push(res)
           }))
         }
       }
       message.read = true
     }
+
   }, 5)
 
   return {
