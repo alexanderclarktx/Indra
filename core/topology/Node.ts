@@ -40,7 +40,7 @@ export const NodeWorker = (
     ...node,
     processed: 0,
     process: async (message: Message | null) => {
-      const startedAt = Date.now()
+      const startedAt = performance.now()
       worker.processed += 1
 
       let seed = ""
@@ -51,7 +51,7 @@ export const NodeWorker = (
         `prompt:${prompt}; ${ message ? `message:${message.text}` : "" }; ${ seed ? `seed:${seed};` : "" }`
       )
 
-      const durationMs = Date.now() - startedAt
+      const durationMs = Math.round(performance.now() - startedAt)
       onEvent?.({
         nodeId: node.id,
         startedAt,
